@@ -33,7 +33,13 @@ case $1 in
         ;;
     add) echo "stub: added" ;;
     run | exec) printf 'cwd=%s\n' "$(pwd -P)" >>"$STUB_LOG" ;;
-    list) printf 'Name    Version\ncreate  0.1.1\nmojo    1.1.0\n' ;;
+    update) : >"$(dirname "$STUB_LOG")/updated" ;;
+    list)
+        # create moves to 0.1.2 once the project is updated.
+        create=0.1.1
+        if [ -e "$(dirname "$STUB_LOG")/updated" ]; then create=0.1.2; fi
+        printf 'Name    Version\ncreate  %s\nmojo    1.1.0\n' "$create"
+        ;;
 esac
 EOF
 chmod +x "$work/bin/pixi"
@@ -213,6 +219,24 @@ logged "cwd=$dir/demo/src" "build does not stay in the current directory"
 (cd demo && run build -o app && ok "build -o app")
 logged 'main.mojo][-o][app]' "build -o app"
 not_logged '/build/demo]' "build -o app also gave the default output"
+
+# --- update
+
+fresh update
+"$create" new demo >/dev/null
+mkdir demo/src
+: >"$STUB_LOG"
+(cd demo/src && run update && ok "update" \
+    && says "create 0.1.1 -> 0.1.2" "update" && says "mojo 1.1.0 (unchanged)" "update" \
+    && case $out in *"stub:"*) fail "update: pixi's output is shown without --verbose" ;; esac)
+logged "[update][--manifest-path][$dir/demo/pixi.toml]" "update"
+rm -f "$work/updated"
+(cd demo && STUB_FAIL=update run update && fails "update when pixi update fails" \
+    && says "stub: update failed" "update when pixi update fails")
+(cd demo && run update --help && ok "update --help" && says "Usage: create update" "update --help")
+(cd demo && run update extra && fails "update with an argument")
+run update; fails "update outside a project"
+rm -f "$work/updated"
 
 # --- doctor
 
