@@ -25,7 +25,8 @@ create run                # runs main.mojo
 
 - `create new <path>` makes a project with the Modular, modular-community and conda-forge
   channels, for Linux (x86-64) and macOS (Apple silicon), adds the `mojo` and `create` packages
-  and writes a `main.mojo` to start from. If a step fails, nothing is left behind.
+  and writes a `main.mojo` to start from. `<path>` may be an empty directory, so `create new .`
+  sets up the current one. If a step fails, nothing is left behind.
 - `create run [args...]` runs the project's `main.mojo` from anywhere inside the project,
   passing any arguments to the program: `create run gpu` runs it on the GPU backend.
 
