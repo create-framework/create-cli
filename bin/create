@@ -41,6 +41,20 @@ require_pixi() {
         || die "pixi is not installed; see https://pixi.sh"
 }
 
+# Single quotes <text> for a shell when it needs them.
+shell_quote() {
+    case $1 in
+        *[!A-Za-z0-9_./+-]* | '') printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")" ;;
+        *) printf '%s' "$1" ;;
+    esac
+}
+
+# <text> as the inside of a Mojo string literal.
+mojo_string() {
+    printf '%s' "$1" | sed 's/[\\"]/\\&/g'
+}
+
+# The template for main.mojo; $1 is the window's title, already escaped.
 main_mojo() {
     cat <<EOF
 # See https://github.com/create-framework/create/blob/main/docs/README.md to get started
@@ -106,10 +120,12 @@ cmd_new() {
     trap 'exit 130' INT TERM
     pixi init "$@" -- "$path"
     pixi add --manifest-path "$path/pixi.toml" mojo create
-    main_mojo "$title" >"$path/main.mojo"
+    main_mojo "$(mojo_string "$title")" >"$path/main.mojo"
     trap - EXIT INT TERM
 
-    printf '\nMade %s. To run it:\n\n  cd %s\n  create run\n\n' "$title" "$path"
+    printf '\nMade %s. To run it:\n\n' "$title"
+    printf '  cd %s\n' "$(shell_quote "$path")"
+    printf '  create run\n\n'
 }
 
 # The nearest directory at or above the current one holding a pixi.toml.
