@@ -28,6 +28,7 @@ tests:
   - script:
       - test "$(create --version)" = "create ${{ version }}"
       - create --help
+      - create new --help
 
 about:
   homepage: https://github.com/create-framework/create-cli
