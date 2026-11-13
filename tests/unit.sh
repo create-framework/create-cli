@@ -147,7 +147,13 @@ mkdir -p demo/src/deep
 (cd demo/src/deep && run run gpu "two words" && ok "run" && logged '[run][mojo][run][main.mojo][gpu][two words]' "run")
 logged "cwd=$dir/demo" "run does not run in the project's directory"
 
-run run; fails "run outside a project"
+run run; fails "run outside a project"; says "not in a Create project" "run outside a project"
+
+# A pixi.toml without a main.mojo, like a nested workspace, is passed over.
+mkdir -p demo/nested && : >demo/nested/pixi.toml
+: >"$STUB_LOG"
+(cd demo/nested && run run && ok "run in a nested workspace")
+logged "cwd=$dir/demo" "run in a nested workspace"
 
 if [ -s "$work/failures" ]; then
     printf '%s failure(s)\n' "$(wc -l <"$work/failures" | tr -d ' ')" >&2
