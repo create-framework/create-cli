@@ -92,6 +92,7 @@ fresh new
 run new demo; ok "new"
 [ -f demo/main.mojo ] || fail "new: no main.mojo"
 grep -qF 'run[MyApp]("demo")' demo/main.mojo || fail "new: the title is not the project's name"
+grep -qxF '/build/' demo/.gitignore || fail "new: build/ is not ignored"
 logged '[--channel][https://conda.modular.com/max]' "new"
 logged '[--platform][linux-64][--platform][osx-arm64]' "new"
 logged '[add][--manifest-path][demo/pixi.toml][mojo][create]' "new"
@@ -185,6 +186,22 @@ mkdir -p demo/nested && : >demo/nested/pixi.toml
 : >"$STUB_LOG"
 (cd demo/nested && run run && ok "run in a nested workspace")
 logged "cwd=$dir/demo" "run in a nested workspace"
+
+# --- build
+
+fresh build
+"$create" new demo >/dev/null
+mkdir demo/src
+: >"$STUB_LOG"
+(cd demo/src && run build && ok "build" && says "Built $dir/demo/build/demo" "build")
+logged "[run][--manifest-path][$dir/demo/pixi.toml][mojo][build][$dir/demo/main.mojo][-o][$dir/demo/build/demo]" "build"
+logged "cwd=$dir/demo/src" "build does not stay in the current directory"
+[ -d demo/build ] || fail "build: no build directory"
+
+: >"$STUB_LOG"
+(cd demo && run build -o app && ok "build -o app")
+logged 'main.mojo][-o][app]' "build -o app"
+not_logged '/build/demo]' "build -o app also gave the default output"
 
 if [ -s "$work/failures" ]; then
     printf '%s failure(s)\n' "$(wc -l <"$work/failures" | tr -d ' ')" >&2
