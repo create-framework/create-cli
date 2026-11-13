@@ -21,6 +21,7 @@ pixi global install create-cli --channel https://prefix.dev/create-framework/cre
 create new my-project     # a pixi project with mojo, create and a main.mojo
 cd my-project
 create run                # runs main.mojo
+create build              # builds an optimised program into build/my-project
 ```
 
 - `create new <path>` makes a project with the Modular, modular-community and conda-forge
@@ -32,6 +33,8 @@ create run                # runs main.mojo
   passing any arguments to the program: `create run gpu` runs it on the GPU backend. The
   program runs in the project's directory, so the paths it opens are relative to the project.
   To pass `--help` to the program, write `create run -- --help`.
+- `create build [options]` builds `main.mojo` into `build/<project name>`; options go to
+  `mojo build`, so `create build -o app` writes `./app` instead.
 
 `create <command> --help` explains each command. A project is a plain pixi project, so
 `pixi run mojo run main.mojo` does the same as `create run`.
@@ -45,7 +48,7 @@ The CLI is one POSIX shell script, [bin/create](bin/create), packaged as a `noar
 ```sh
 pixi run lint      # shellcheck
 pixi run test      # offline tests, against a stub pixi (tests/unit.sh)
-pixi run e2e       # end to end: create new, then build its main.mojo (needs the network)
+pixi run e2e       # end to end: create new, then create build (needs the network)
 pixi run package   # build the conda package into build/
 ```
 

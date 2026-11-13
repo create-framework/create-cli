@@ -52,6 +52,7 @@ create $VERSION: start and run Create projects
 Usage:
   create new <path>        Make a project at <path> with mojo, create and a main.mojo
   create run [args...]     Run the project's main.mojo, passing args to the program
+  create build [options]   Build main.mojo into an optimised program in build/
   create --version         Print the version
   create --help            Print this help
 
@@ -87,6 +88,16 @@ the program: 'create run gpu' runs it on the GPU backend. The program runs in
 the project's directory, so paths it opens are relative to the project.
 
 To pass --help to the program, put '--' first: create run -- --help
+EOF
+}
+
+usage_build() {
+    cat <<EOF
+Usage: create build [mojo build options...]
+
+Builds the project's main.mojo into a program at build/<project name>, which
+runs without pixi or Mojo installed on the same platform. Options go to
+'mojo build': 'create build -o app' writes the program to ./app instead.
 EOF
 }
 
@@ -233,6 +244,7 @@ cmd_new() {
     quietly pixi add --manifest-path "$path/pixi.toml" mojo create \
         || die "could not add mojo and create: pixi add failed"
     main_mojo "$(mojo_string "$title")" >"$path/main.mojo"
+    printf '\n# create build output\n/build/\n' >>"$path/.gitignore"
 
     trap - EXIT INT TERM
     rm -f "$log"
@@ -282,12 +294,38 @@ cmd_run() {
     exec pixi run mojo run main.mojo "$@"
 }
 
+cmd_build() {
+    case ${1-} in
+        -h | --help) usage_build; exit 0 ;;
+    esac
+    require_pixi
+    require_platform
+    root=$(require_project)
+
+    output=
+    for arg; do
+        case $arg in
+            -o | -o?* | --output | --output=*) output=given ;;
+        esac
+    done
+    if [ -z "$output" ]; then
+        mkdir -p "$root/build"
+        output="$root/build/$(basename "$root")"
+        set -- -o "$output" "$@"
+    fi
+
+    # Run from where we are, so a relative -o is relative to here.
+    pixi run --manifest-path "$root/pixi.toml" mojo build "$root/main.mojo" "$@"
+    [ "$output" = given ] || printf 'Built %s\n' "$output"
+}
+
 [ $# -gt 0 ] || { usage >&2; exit 1; }
 command=$1
 shift
 case $command in
     new) cmd_new "$@" ;;
     run) cmd_run "$@" ;;
+    build) cmd_build "$@" ;;
     -V | --version | version) printf 'create %s\n' "$VERSION" ;;
     -h | --help | help) usage ;;
     *) printf 'create: unknown command %s\n\n' "'$command'" >&2; usage >&2; exit 1 ;;
