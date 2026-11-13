@@ -214,6 +214,15 @@ logged "cwd=$dir/demo/src" "build does not stay in the current directory"
 logged 'main.mojo][-o][app]' "build -o app"
 not_logged '/build/demo]' "build -o app also gave the default output"
 
+# --- doctor
+
+fresh doctor
+"$create" new demo >/dev/null
+run doctor; ok "doctor outside a project"; says "not in a project" "doctor outside a project"
+(cd demo && run doctor && ok "doctor" && says "create 0.1.1, mojo 1.1.0" "doctor")
+PATH="$work/freebsd:$PATH" run doctor; fails "doctor on FreeBSD"; says "1 problem" "doctor on FreeBSD"
+run doctor extra; fails "doctor with an argument"
+
 if [ -s "$work/failures" ]; then
     printf '%s failure(s)\n' "$(wc -l <"$work/failures" | tr -d ' ')" >&2
     exit 1

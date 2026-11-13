@@ -1,8 +1,8 @@
 #!/bin/sh
 # End to end, against the real pixi: makes a project with `create new` in a
-# temporary directory, then builds it with `create build`, which type-checks
-# the template against the newest Create. Needs the network; the program
-# itself is not run (no display).
+# temporary directory, builds it with `create build`, and checks it with
+# `create doctor`. Needs the network; the program itself is not run (no
+# display).
 set -eu
 
 create="$(cd "$(dirname "$0")/.." && pwd)/bin/create"
@@ -22,5 +22,7 @@ fail() {
 mkdir demo/src
 (cd demo/src && "$create" build) || fail "main.mojo does not build"
 [ -x demo/build/demo ] || fail "create build made no demo/build/demo"
+
+(cd demo && "$create" doctor) || fail "create doctor found problems"
 
 echo "ok"
