@@ -3,6 +3,10 @@
 # it is called, so argument handling, cleanup, finding the project and error
 # paths are tested in a second, without the network. tests/e2e.sh tests
 # against the real pixi.
+#
+# Tests that change the environment do it in a subshell, so the change ends
+# with it, which is what SC2030 and SC2031 warn about.
+# shellcheck disable=SC2030,SC2031
 set -eu
 
 create="$(cd "$(dirname "$0")/.." && pwd)/bin/create"
@@ -72,7 +76,9 @@ fresh() {
 }
 
 # Runs create, keeping its output in $out (stdout and stderr) and its exit
-# status in $status.
+# status in $status. To change the environment for a call, export in a
+# subshell: an assignment before a function call, like `VAR=x run`, stays set
+# after it in some shells, such as macOS's /bin/sh (bash 3.2).
 run() {
     status=0
     out=$("$create" "$@" 2>&1) || status=$?
@@ -152,24 +158,24 @@ grep -qF 'run[MyApp]("here")' main.mojo || fail "new .: the title is not the dir
 case $out in *"cd "*) fail "new .: says to cd" ;; esac
 
 fresh new-fail
-STUB_FAIL=add run new demo; fails "new when pixi add fails"
-says "stub: add failed" "the failing pixi's output is not shown"
+(export STUB_FAIL=add; run new demo; fails "new when pixi add fails"
+    says "stub: add failed" "the failing pixi's output is not shown")
 [ ! -e demo ] || fail "a failed new left demo behind"
 mkdir empty
-STUB_FAIL=add run new empty; fails "new in a directory when pixi add fails"
+(export STUB_FAIL=add; run new empty; fails "new in a directory when pixi add fails")
 [ -d empty ] || fail "a failed new removed a directory it did not make"
 [ -z "$(ls -A empty)" ] || fail "a failed new left files in empty: $(ls -A empty)"
-STUB_FAIL=init run new demo; fails "new when pixi init fails"
+(export STUB_FAIL=init; run new demo; fails "new when pixi init fails")
 [ ! -e demo ] || fail "a failed init left demo behind"
 
 fresh new-platform
-PATH="$work/freebsd:$PATH" run new demo; fails "new on FreeBSD"
-says "not on FreeBSD amd64" "the unsupported platform"
+(PATH="$work/freebsd:$PATH"; run new demo; fails "new on FreeBSD"
+    says "not on FreeBSD amd64" "the unsupported platform")
 [ ! -e demo ] || fail "new on an unsupported platform made demo"
 
 if ! PATH=/usr/bin:/bin command -v pixi >/dev/null 2>&1; then
     fresh new-no-pixi
-    PATH=/usr/bin:/bin run new demo; fails "new without pixi"; says "pixi is not installed" "new without pixi"
+    (PATH=/usr/bin:/bin; run new demo; fails "new without pixi"; says "pixi is not installed" "new without pixi")
 fi
 
 # --- run
@@ -231,7 +237,7 @@ mkdir demo/src
     && case $out in *"stub:"*) fail "update: pixi's output is shown without --verbose" ;; esac)
 logged "[update][--manifest-path][$dir/demo/pixi.toml]" "update"
 rm -f "$work/updated"
-(cd demo && STUB_FAIL=update run update && fails "update when pixi update fails" \
+(cd demo && export STUB_FAIL=update && run update && fails "update when pixi update fails" \
     && says "stub: update failed" "update when pixi update fails")
 (cd demo && run update --help && ok "update --help" && says "Usage: create update" "update --help")
 (cd demo && run update extra && fails "update with an argument")
@@ -244,7 +250,7 @@ fresh doctor
 "$create" new demo >/dev/null
 run doctor; ok "doctor outside a project"; says "not in a project" "doctor outside a project"
 (cd demo && run doctor && ok "doctor" && says "create 0.1.1, mojo 1.1.0" "doctor")
-PATH="$work/freebsd:$PATH" run doctor; fails "doctor on FreeBSD"; says "1 problem" "doctor on FreeBSD"
+(PATH="$work/freebsd:$PATH"; run doctor; fails "doctor on FreeBSD"; says "1 problem" "doctor on FreeBSD")
 run doctor extra; fails "doctor with an argument"
 
 if [ -s "$work/failures" ]; then
