@@ -107,6 +107,11 @@ run new --verbose demo; ok "new --verbose"; says "stub: added" "new --verbose"
 fresh new-verbose-after
 run new demo -v; ok "new with -v after the path"; says "stub: added" "new -v after the path"
 
+fresh new-help
+run new --help; ok "new --help"; says "Usage: create new" "new --help"
+[ -z "$(ls -A)" ] || fail "new --help made something: $(ls -A)"
+[ ! -s "$STUB_LOG" ] || fail "new --help called pixi"
+
 fresh new-bad-args
 run new --frobnicate demo; fails "new with an unknown option"; says "unknown option '--frobnicate'" "an unknown option"
 run new; fails "new without a path"
@@ -168,6 +173,10 @@ mkdir -p demo/src/deep
 : >"$STUB_LOG"
 (cd demo/src/deep && run run gpu "two words" && ok "run" && logged '[run][mojo][run][main.mojo][gpu][two words]' "run")
 logged "cwd=$dir/demo" "run does not run in the project's directory"
+
+: >"$STUB_LOG"
+(cd demo && run run -- --help && ok "run -- --help" && logged '[main.mojo][--help]' "run -- --help")
+(cd demo && run run --help && ok "run --help" && says "Usage: create run" "run --help")
 
 run run; fails "run outside a project"; says "not in a Create project" "run outside a project"
 

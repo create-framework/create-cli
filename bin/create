@@ -14,6 +14,8 @@ CHANNELS="https://conda.modular.com/max https://repo.prefix.dev/modular-communit
 # on the other.
 PLATFORMS="linux-64 osx-arm64"
 
+GUIDE="https://github.com/create-framework/create/blob/main/docs/README.md"
+
 nl='
 '
 
@@ -48,12 +50,43 @@ usage() {
 create $VERSION: start and run Create projects
 
 Usage:
-  create new <path>      Make a project at <path> with mojo, create and a main.mojo
-  create run [args...]   Run the project's main.mojo, passing args to the program
-  create --version       Print the version
-  create --help          Print this help
+  create new <path>        Make a project at <path> with mojo, create and a main.mojo
+  create run [args...]     Run the project's main.mojo, passing args to the program
+  create --version         Print the version
+  create --help            Print this help
 
-The user guide: https://github.com/create-framework/create/blob/main/docs/README.md
+'create <command> --help' tells more about a command.
+
+The user guide: $GUIDE
+To update: pixi global update create-cli
+EOF
+}
+
+usage_new() {
+    cat <<EOF
+Usage: create new [--verbose] <path>
+
+Makes a project at <path>, which must not exist or be an empty directory
+('create new .' makes one in the current directory). The project is a pixi
+project with the Modular, modular-community and conda-forge channels, for
+Linux (x86-64) and macOS (Apple silicon), with the mojo and create packages
+and a main.mojo to start from. If a step fails, nothing is left behind.
+
+Options:
+  -v, --verbose   Show pixi's output
+  -h, --help      Print this help
+EOF
+}
+
+usage_run() {
+    cat <<EOF
+Usage: create run [args...]
+
+Runs the project's main.mojo, from anywhere inside the project, passing args to
+the program: 'create run gpu' runs it on the GPU backend. The program runs in
+the project's directory, so paths it opens are relative to the project.
+
+To pass --help to the program, put '--' first: create run -- --help
 EOF
 }
 
@@ -92,7 +125,7 @@ mojo_string() {
 # The template for main.mojo; $1 is the window's title, already escaped.
 main_mojo() {
     cat <<EOF
-# See https://github.com/create-framework/create/blob/main/docs/README.md to get started
+# See $GUIDE to get started
 
 from create import *
 
@@ -148,9 +181,10 @@ cmd_new() {
     for arg; do
         if [ -n "$options" ]; then
             case $arg in
+                -h | --help) usage_new; exit 0 ;;
                 -v | --verbose) verbose=1; continue ;;
                 --) options=; continue ;;
-                -*) die "unknown option '$arg'" ;;
+                -*) die "unknown option '$arg'; see 'create new --help'" ;;
             esac
         fi
         path=$arg
@@ -228,7 +262,19 @@ require_project() {
         || die "not in a Create project: no pixi.toml with a main.mojo here or above"
 }
 
+# Skips a leading -h/--help (the command's own help) or -- (so the program
+# gets everything after it); sets $skip to how many arguments to drop.
+program_args() {
+    skip=0
+    case ${2-} in
+        -h | --help) "$1"; exit 0 ;;
+        --) skip=1 ;;
+    esac
+}
+
 cmd_run() {
+    program_args usage_run "$@"
+    shift "$skip"
     require_pixi
     require_platform
     root=$(require_project)
@@ -236,7 +282,7 @@ cmd_run() {
     exec pixi run mojo run main.mojo "$@"
 }
 
-[ $# -gt 0 ] || { usage; exit 1; }
+[ $# -gt 0 ] || { usage >&2; exit 1; }
 command=$1
 shift
 case $command in

@@ -29,9 +29,14 @@ create run                # runs main.mojo
   sets up the current one. If a step fails, nothing is left behind. `--verbose` shows pixi's
   output.
 - `create run [args...]` runs the project's `main.mojo` from anywhere inside the project,
-  passing any arguments to the program: `create run gpu` runs it on the GPU backend.
+  passing any arguments to the program: `create run gpu` runs it on the GPU backend. The
+  program runs in the project's directory, so the paths it opens are relative to the project.
+  To pass `--help` to the program, write `create run -- --help`.
 
-A project is a plain pixi project, so `pixi run mojo run main.mojo` does the same as `create run`.
+`create <command> --help` explains each command. A project is a plain pixi project, so
+`pixi run mojo run main.mojo` does the same as `create run`.
+
+To update the CLI: `pixi global update create-cli`.
 
 ## Development
 
