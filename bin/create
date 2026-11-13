@@ -14,6 +14,13 @@ CHANNELS="https://conda.modular.com/max https://repo.prefix.dev/modular-communit
 # on the other.
 PLATFORMS="linux-64 osx-arm64"
 
+# The Create releases the main.mojo template below is written for. New projects
+# stay on these even after Create changes its API, so a CLI never makes a
+# project that does not build. CI builds the template against the newest
+# Create every week (tests/e2e.sh --latest); when that fails, update the
+# template and this range together.
+CREATE_SPEC="create>=0.1.1,<0.2"
+
 # What `create watch` uses to rerun the program; pixi fetches it on first use.
 WATCHEXEC_SPEC="watchexec>=2,<3"
 
@@ -268,7 +275,7 @@ cmd_new() {
     quietly pixi init "$@" -- "$path" \
         || die "could not make the project: pixi init failed"
     step "Adding Mojo and Create (the first time, this downloads Mojo and can take a few minutes)"
-    quietly pixi add --manifest-path "$path/pixi.toml" mojo create \
+    quietly pixi add --manifest-path "$path/pixi.toml" mojo "$CREATE_SPEC" \
         || die "could not add mojo and create: pixi add failed"
     main_mojo "$(mojo_string "$title")" >"$path/main.mojo"
     printf '\n# create build output\n/build/\n' >>"$path/.gitignore"

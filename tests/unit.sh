@@ -95,7 +95,7 @@ grep -qF 'run[MyApp]("demo")' demo/main.mojo || fail "new: the title is not the 
 grep -qxF '/build/' demo/.gitignore || fail "new: build/ is not ignored"
 logged '[--channel][https://conda.modular.com/max]' "new"
 logged '[--platform][linux-64][--platform][osx-arm64]' "new"
-logged '[add][--manifest-path][demo/pixi.toml][mojo][create]' "new"
+logged '[add][--manifest-path][demo/pixi.toml][mojo][create>=' "new"
 says "cd demo" "new"
 case $out in *"stub: added"*) fail "new: pixi's output is shown without --verbose" ;; esac
 case $out in *"$(printf '\033')"*) fail "new: colour when not on a terminal" ;; esac
