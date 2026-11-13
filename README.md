@@ -23,6 +23,7 @@ cd my-project
 create run                # runs main.mojo
 create watch              # runs main.mojo, and again whenever a .mojo file is saved
 create build              # builds an optimised program into build/my-project
+create doctor             # checks pixi, this machine and the project for problems
 ```
 
 - `create new <path>` makes a project with the Modular, modular-community and conda-forge
@@ -39,6 +40,8 @@ create build              # builds an optimised program into build/my-project
   downloads the first time.
 - `create build [options]` builds `main.mojo` into `build/<project name>`; options go to
   `mojo build`, so `create build -o app` writes `./app` instead.
+- `create doctor` reports the versions of the CLI, pixi, Mojo and Create, whether this machine
+  is supported, and the display and GPU it would use.
 
 `create <command> --help` explains each command. A project is a plain pixi project, so
 `pixi run mojo run main.mojo` does the same as `create run`.
@@ -52,7 +55,7 @@ The CLI is one POSIX shell script, [bin/create](bin/create), packaged as a `noar
 ```sh
 pixi run lint      # shellcheck
 pixi run test      # offline tests, against a stub pixi (tests/unit.sh)
-pixi run e2e       # end to end: create new, then create build (needs the network)
+pixi run e2e       # end to end: create new, then create build and create doctor (needs the network)
 pixi run package   # build the conda package into build/
 ```
 

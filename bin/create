@@ -57,6 +57,7 @@ Usage:
   create run [args...]     Run the project's main.mojo, passing args to the program
   create watch [args...]   Run main.mojo, and run it again whenever a .mojo file is saved
   create build [options]   Build main.mojo into an optimised program in build/
+  create doctor            Check pixi, this machine and the project for problems
   create --version         Print the version
   create --help            Print this help
 
@@ -114,6 +115,16 @@ Usage: create build [mojo build options...]
 Builds the project's main.mojo into a program at build/<project name>, which
 runs without pixi or Mojo installed on the same platform. Options go to
 'mojo build': 'create build -o app' writes the program to ./app instead.
+EOF
+}
+
+usage_doctor() {
+    cat <<EOF
+Usage: create doctor
+
+Checks that pixi is installed, that this machine can run Create, and, inside a
+project, which Mojo and Create it uses, then reports the display and GPU.
+Exits with an error if something would stop Create from working.
 EOF
 }
 
@@ -347,6 +358,81 @@ cmd_build() {
     [ "$output" = given ] || printf 'Built %s\n' "$output"
 }
 
+cmd_doctor() {
+    case ${1-} in
+        -h | --help) usage_doctor; exit 0 ;;
+    esac
+    [ $# -eq 0 ] || die "usage: create doctor"
+
+    problems=0
+    good() { printf '  %s %-10s %s\n' "$(paint "$color_out" 32 ok)" "$1" "$2"; }
+    note() { printf '  %s %-10s %s\n' "$(paint "$color_out" 33 '--')" "$1" "$2"; }
+    bad() {
+        printf '  %s %-10s %s\n' "$(paint "$color_out" 31 '!!')" "$1" "$2"
+        problems=$((problems + 1))
+    }
+
+    good create "$VERSION"
+
+    have_pixi=
+    if command -v pixi >/dev/null 2>&1; then
+        have_pixi=1
+        good pixi "$(pixi --version | sed 's/^pixi //')"
+    else
+        bad pixi "not installed; see https://pixi.sh"
+    fi
+
+    if platform=$(host_platform); then
+        good platform "$platform"
+    else
+        bad platform "$(uname -s) $(uname -m): Create runs on Linux (x86-64) and macOS (Apple silicon)"
+    fi
+
+    if root=$(project_root); then
+        good project "$root"
+        if [ -n "$have_pixi" ]; then
+            versions=$(cd "$root" && pixi list --fields name,version '^(mojo|create)$' 2>/dev/null \
+                | awk '$1 == "mojo" || $1 == "create" { printf "%s%s %s", sep, $1, $2; sep = ", " }') \
+                || versions=
+            if [ -n "$versions" ]; then
+                good packages "$versions"
+            else
+                bad packages "mojo and create are not installed: run 'pixi install' in $root"
+            fi
+        fi
+    else
+        note project "not in a project"
+    fi
+
+    case $(uname -s) in
+        Linux)
+            if [ -n "${WAYLAND_DISPLAY:-}" ] || [ -n "${DISPLAY:-}" ]; then
+                good display "${WAYLAND_DISPLAY:-${DISPLAY:-}}"
+            else
+                note display "none: DISPLAY and WAYLAND_DISPLAY are unset, so no window can open"
+            fi
+            if command -v nvidia-smi >/dev/null 2>&1 \
+                && gpu=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -n 1) \
+                && [ -n "$gpu" ]; then
+                good gpu "$gpu"
+            elif [ -e /dev/kfd ]; then
+                good gpu "AMD (ROCm)"
+            else
+                note gpu "no NVIDIA or AMD GPU found"
+            fi
+            ;;
+        Darwin)
+            good display "macOS"
+            good gpu "Apple silicon (Metal)"
+            ;;
+    esac
+
+    if [ "$problems" -gt 0 ]; then
+        printf '\n%s problem(s) found.\n' "$problems"
+        exit 1
+    fi
+}
+
 [ $# -gt 0 ] || { usage >&2; exit 1; }
 command=$1
 shift
@@ -355,6 +441,7 @@ case $command in
     run) cmd_run "$@" ;;
     watch) cmd_watch "$@" ;;
     build) cmd_build "$@" ;;
+    doctor) cmd_doctor "$@" ;;
     -V | --version | version) printf 'create %s\n' "$VERSION" ;;
     -h | --help | help) usage ;;
     *) printf 'create: unknown command %s\n\n' "'$command'" >&2; usage >&2; exit 1 ;;
