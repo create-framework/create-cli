@@ -81,7 +81,7 @@ not_logged() { ! grep -qF -- "$1" "$STUB_LOG" || fail "$2: pixi was called with 
 # --- the top level
 
 fresh top
-run --version; ok "--version"; says "create 0.1.0" "--version"
+run --version; ok "--version"; says "create dev" "--version"
 run --help; ok "--help"; says "create run" "--help"
 run; fails "no command"
 run bogus; fails "an unknown command"; says "unknown command 'bogus'" "an unknown command"
