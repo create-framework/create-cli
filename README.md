@@ -42,6 +42,5 @@ pixi run e2e       # end to end: create new, then build its main.mojo (needs the
 pixi run package   # build the conda package into build/
 ```
 
-To release, set the version in both [bin/create](bin/create) and
-[recipe/recipe.yaml](recipe/recipe.yaml) (the package's test checks they match), then push a
-`vX.Y.Z` tag: the release workflow builds the package and uploads it to the channel.
+To release, push a `vX.Y.Z` tag: the release workflow builds the package with that version
+written into the script, and uploads it to the channel.

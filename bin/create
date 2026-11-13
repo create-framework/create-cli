@@ -2,7 +2,9 @@
 # create: start and run Create projects. Everything is done by pixi.
 set -eu
 
-VERSION="0.1.0"
+# Replaced with the release's version when the package is built (see
+# recipe/recipe.yaml), so the git tag is the one place it is set.
+VERSION="dev"
 
 # The channels a project needs: Mojo from Modular's, Create from
 # modular-community, and its native libraries from conda-forge.

@@ -1,7 +1,8 @@
 name: Release
 
 # Builds the package and uploads it to the prefix.dev channel through trusted
-# publishing: the channel must trust this repository and workflow.
+# publishing: the channel must trust this repository and workflow. The version
+# comes from the tag: v1.2.3 releases 1.2.3.
 on:
   push:
     tags: ["v*"]
@@ -18,7 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: prefix-dev/setup-pixi@v0.11.3
-      - name: Check the tag matches the version
-        run: test "$(bin/create --version)" = "create ${GITHUB_REF_NAME#v}"
+      - name: Take the version from the tag
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' \
+            || { echo "the tag $GITHUB_REF_NAME is not vX.Y.Z" >&2; exit 1; }
+          echo "CREATE_CLI_VERSION=$version" >>"$GITHUB_ENV"
       - run: pixi run package
       - run: pixi run rattler-build upload prefix --channel "$CHANNEL" build/noarch/*.conda
