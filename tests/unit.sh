@@ -128,6 +128,11 @@ says "stub: add failed" "the failing pixi's output is not shown"
 STUB_FAIL=init run new demo; fails "new when pixi init fails"
 [ ! -e demo ] || fail "a failed init left demo behind"
 
+fresh new-platform
+PATH="$work/freebsd:$PATH" run new demo; fails "new on FreeBSD"
+says "not on FreeBSD amd64" "the unsupported platform"
+[ ! -e demo ] || fail "new on an unsupported platform made demo"
+
 if ! PATH=/usr/bin:/bin command -v pixi >/dev/null 2>&1; then
     fresh new-no-pixi
     PATH=/usr/bin:/bin run new demo; fails "new without pixi"; says "pixi is not installed" "new without pixi"
