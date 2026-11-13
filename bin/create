@@ -57,7 +57,7 @@ step() {
 
 usage() {
     cat <<EOF
-create $VERSION: start and run Create projects
+create-cli $VERSION: start and run Create projects
 
 Usage:
   create new <path>        Make a project at <path> with mojo, create and a main.mojo
@@ -436,7 +436,7 @@ cmd_doctor() {
         problems=$((problems + 1))
     }
 
-    good create "$VERSION"
+    good create-cli "$VERSION"
 
     have_pixi=
     if command -v pixi >/dev/null 2>&1; then
@@ -506,7 +506,7 @@ case $command in
     build) cmd_build "$@" ;;
     update) cmd_update "$@" ;;
     doctor) cmd_doctor "$@" ;;
-    -V | --version | version) printf 'create %s\n' "$VERSION" ;;
+    -V | --version | version) printf 'create-cli %s\n' "$VERSION" ;;
     -h | --help | help) usage ;;
     *) printf 'create: unknown command %s\n\n' "'$command'" >&2; usage >&2; exit 1 ;;
 esac

@@ -93,7 +93,7 @@ not_logged() { ! grep -qF -- "$1" "$STUB_LOG" || fail "$2: pixi was called with 
 # --- the top level
 
 fresh top
-run --version; ok "--version"; says "create dev" "--version"
+run --version; ok "--version"; says "create-cli dev" "--version"
 run --help; ok "--help"; says "create watch" "--help"
 run; fails "no command"
 run bogus; fails "an unknown command"; says "unknown command 'bogus'" "an unknown command"
@@ -249,7 +249,8 @@ rm -f "$work/updated"
 fresh doctor
 "$create" new demo >/dev/null
 run doctor; ok "doctor outside a project"; says "not in a project" "doctor outside a project"
-(cd demo && run doctor && ok "doctor" && says "create 0.1.1, mojo 1.1.0" "doctor")
+(cd demo && run doctor && ok "doctor" && says "create 0.1.1, mojo 1.1.0" "doctor" \
+    && says "create-cli dev" "doctor")
 (PATH="$work/freebsd:$PATH"; run doctor; fails "doctor on FreeBSD"; says "1 problem" "doctor on FreeBSD")
 run doctor extra; fails "doctor with an argument"
 
