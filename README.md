@@ -23,6 +23,7 @@ cd my-project
 create run                # runs main.mojo
 create watch              # runs main.mojo, and again whenever a .mojo file is saved
 create build              # builds an optimised program into build/my-project
+create update             # updates Mojo and Create within the versions the project allows
 create doctor             # checks pixi, this machine and the project for problems
 ```
 
@@ -40,6 +41,10 @@ create doctor             # checks pixi, this machine and the project for proble
   downloads the first time.
 - `create build [options]` builds `main.mojo` into `build/<project name>`; options go to
   `mojo build`, so `create build -o app` writes `./app` instead.
+- `create update` runs `pixi update` from anywhere in the project, then shows how Mojo and
+  Create changed. It stays within the versions `pixi.toml` allows, so it never brings a Create
+  release that could break `main.mojo`; to move to one, change `create`'s version in
+  `pixi.toml` and follow Create's release notes.
 - `create doctor` reports the versions of the CLI, pixi, Mojo and Create, whether this machine
   is supported, and the display and GPU it would use.
 
@@ -55,7 +60,7 @@ The CLI is one POSIX shell script, [bin/create](bin/create), packaged as a `noar
 ```sh
 pixi run lint         # shellcheck
 pixi run test         # offline tests, against a stub pixi (tests/unit.sh)
-pixi run e2e          # end to end: create new, then create build and create doctor (needs the network)
+pixi run e2e          # end to end: create new, then create build, update and doctor (needs the network)
 pixi run e2e-latest   # the same, with the newest Create instead of the pinned one
 pixi run package      # build the conda package into build/
 ```

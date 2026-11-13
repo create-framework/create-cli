@@ -64,6 +64,7 @@ Usage:
   create run [args...]     Run the project's main.mojo, passing args to the program
   create watch [args...]   Run main.mojo, and run it again whenever a .mojo file is saved
   create build [options]   Build main.mojo into an optimised program in build/
+  create update            Update Mojo and Create within the versions the project allows
   create doctor            Check pixi, this machine and the project for problems
   create --version         Print the version
   create --help            Print this help
@@ -122,6 +123,22 @@ Usage: create build [mojo build options...]
 Builds the project's main.mojo into a program at build/<project name>, which
 runs without pixi or Mojo installed on the same platform. Options go to
 'mojo build': 'create build -o app' writes the program to ./app instead.
+EOF
+}
+
+usage_update() {
+    cat <<EOF
+Usage: create update [--verbose]
+
+Updates the project's packages, like Mojo and Create, from anywhere inside the
+project, to the newest releases its pixi.toml allows, then shows how Mojo and
+Create changed. The allowed versions stay as they are, so an update never
+brings a Create release that could break main.mojo; to move to one, change
+create's version in pixi.toml and follow Create's release notes.
+
+Options:
+  -v, --verbose   Show pixi's output
+  -h, --help      Print this help
 EOF
 }
 
@@ -308,6 +325,14 @@ require_project() {
         || die "not in a Create project: no pixi.toml with a main.mojo here or above"
 }
 
+# "name version" lines for the project's mojo and create, from its lock file;
+# nothing if there is no lock file yet.
+package_versions() {
+    pixi list --manifest-path "$1/pixi.toml" --frozen --no-install \
+        --fields name,version '^(mojo|create)$' 2>/dev/null \
+        | awk '$1 == "mojo" || $1 == "create" { print $1, $2 }'
+}
+
 # Skips a leading -h/--help (the command's own help) or -- (so the program
 # gets everything after it); sets $skip to how many arguments to drop.
 program_args() {
@@ -365,6 +390,38 @@ cmd_build() {
     [ "$output" = given ] || printf 'Built %s\n' "$output"
 }
 
+cmd_update() {
+    verbose=
+    for arg; do
+        case $arg in
+            -h | --help) usage_update; exit 0 ;;
+            -v | --verbose) verbose=1 ;;
+            *) die "usage: create update [--verbose]" ;;
+        esac
+    done
+    require_pixi
+    require_platform
+    root=$(require_project)
+
+    before=$(package_versions "$root")
+    log=$(mktemp)
+    trap 'rm -f "$log"' EXIT
+    trap 'exit 130' INT TERM
+
+    step "Updating ${root##*/}"
+    quietly pixi update --manifest-path "$root/pixi.toml" \
+        || die "could not update the project: pixi update failed"
+
+    package_versions "$root" | while read -r name version; do
+        old=$(printf '%s\n' "$before" | awk -v name="$name" '$1 == name { print $2 }')
+        if [ "$old" = "$version" ]; then
+            printf '  %s %s (unchanged)\n' "$name" "$version"
+        else
+            printf '  %s %s -> %s\n' "$name" "${old:-none}" "$version"
+        fi
+    done
+}
+
 cmd_doctor() {
     case ${1-} in
         -h | --help) usage_doctor; exit 0 ;;
@@ -398,13 +455,12 @@ cmd_doctor() {
     if root=$(project_root); then
         good project "$root"
         if [ -n "$have_pixi" ]; then
-            versions=$(cd "$root" && pixi list --fields name,version '^(mojo|create)$' 2>/dev/null \
-                | awk '$1 == "mojo" || $1 == "create" { printf "%s%s %s", sep, $1, $2; sep = ", " }') \
-                || versions=
+            versions=$(package_versions "$root" \
+                | awk '{ printf "%s%s %s", sep, $1, $2; sep = ", " }')
             if [ -n "$versions" ]; then
                 good packages "$versions"
             else
-                bad packages "mojo and create are not installed: run 'pixi install' in $root"
+                bad packages "mojo and create are not in the lock file: run 'pixi install' in $root"
             fi
         fi
     else
@@ -448,6 +504,7 @@ case $command in
     run) cmd_run "$@" ;;
     watch) cmd_watch "$@" ;;
     build) cmd_build "$@" ;;
+    update) cmd_update "$@" ;;
     doctor) cmd_doctor "$@" ;;
     -V | --version | version) printf 'create %s\n' "$VERSION" ;;
     -h | --help | help) usage ;;
