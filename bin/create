@@ -1,0 +1,117 @@
+#!/bin/sh
+# create: start and run Create projects. Everything is done by pixi.
+set -eu
+
+VERSION="0.1.0"
+
+# The channels a project needs: Mojo from Modular's, Create from
+# modular-community, and its native libraries from conda-forge.
+CHANNELS="https://conda.modular.com/max https://repo.prefix.dev/modular-community conda-forge"
+
+# The platforms Create supports; listing both lets a project made on one solve
+# on the other.
+PLATFORMS="linux-64 osx-arm64"
+
+usage() {
+    cat <<EOF
+create $VERSION: start and run Create projects
+
+Usage:
+  create new <path>      Make a project at <path> with mojo, create and a main.mojo
+  create run [args...]   Run the project's main.mojo, passing args to the program
+  create --version       Print the version
+  create --help          Print this help
+
+The user guide: https://github.com/create-framework/create/blob/main/docs/README.md
+EOF
+}
+
+die() {
+    printf 'create: %s\n' "$1" >&2
+    exit 1
+}
+
+require_pixi() {
+    command -v pixi >/dev/null 2>&1 \
+        || die "pixi is not installed; see https://pixi.sh"
+}
+
+main_mojo() {
+    cat <<EOF
+# See https://github.com/create-framework/create/blob/main/docs/README.md to get started
+
+from create import *
+
+
+@fieldwise_init
+struct MyApp(Program):
+
+    @staticmethod
+    def create(mut context: Context, mut canvas: Canvas) raises -> MyApp:
+        # Called once: set initial application state and draw the first frame
+        return MyApp()
+
+    def update(mut self, mut context: Context, mut canvas: Canvas) raises:
+        # Called once per frame: handle input, modify state and draw to the screen
+        pass
+
+
+def main() raises:
+    run[MyApp]("$1")
+EOF
+}
+
+cmd_new() {
+    [ $# -eq 1 ] || die "usage: create new <path>"
+    path=${1%/}
+    [ -n "$path" ] || die "usage: create new <path>"
+    [ ! -e "$path" ] || die "'$path' already exists"
+    require_pixi
+
+    title=$(basename "$path")
+    set --
+    for channel in $CHANNELS; do set -- "$@" --channel "$channel"; done
+    for platform in $PLATFORMS; do set -- "$@" --platform "$platform"; done
+
+    # A half-made project is removed, so the command can simply be rerun.
+    trap 'rm -rf "$path"' EXIT
+    trap 'exit 130' INT TERM
+    pixi init "$@" "$path"
+    pixi add --manifest-path "$path/pixi.toml" mojo create
+    main_mojo "$title" >"$path/main.mojo"
+    trap - EXIT INT TERM
+
+    printf '\nMade %s. To run it:\n\n  cd %s\n  create run\n\n' "$title" "$path"
+}
+
+# The nearest directory at or above the current one holding a pixi.toml.
+project_root() {
+    dir=$(pwd)
+    while :; do
+        if [ -f "$dir/pixi.toml" ]; then
+            printf '%s\n' "$dir"
+            return 0
+        fi
+        [ "$dir" != / ] || return 1
+        dir=$(dirname "$dir")
+    done
+}
+
+cmd_run() {
+    require_pixi
+    root=$(project_root) || die "not in a project: no pixi.toml here or above"
+    [ -f "$root/main.mojo" ] || die "no main.mojo in $root"
+    cd "$root"
+    exec pixi run mojo run main.mojo "$@"
+}
+
+[ $# -gt 0 ] || { usage; exit 1; }
+command=$1
+shift
+case $command in
+    new) cmd_new "$@" ;;
+    run) cmd_run "$@" ;;
+    -V | --version | version) printf 'create %s\n' "$VERSION" ;;
+    -h | --help | help) usage ;;
+    *) printf 'create: unknown command %s\n\n' "'$command'" >&2; usage >&2; exit 1 ;;
+esac

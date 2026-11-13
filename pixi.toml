@@ -1,0 +1,13 @@
+[workspace]
+name = "create-cli"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64"]
+
+[tasks]
+lint = "shellcheck bin/create tests/test.sh"
+test = "sh tests/test.sh"
+package = "rattler-build build --recipe recipe/recipe.yaml --output-dir build"
+
+[dependencies]
+shellcheck = ">=0.10,<0.12"
+rattler-build = ">=0.30,<1"

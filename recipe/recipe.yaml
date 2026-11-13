@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+#
+# Built by `pixi run package`, and published by the release workflow. The
+# version here must match VERSION in bin/create; the test checks it.
+context:
+  version: "0.1.0"
+
+package:
+  name: create-cli
+  version: ${{ version }}
+
+source:
+  path: ..
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p "$PREFIX/bin"
+    - cp bin/create "$PREFIX/bin/create"
+    - chmod 755 "$PREFIX/bin/create"
+
+# No dependency on pixi: the CLI is installed with it, and uses the one on
+# PATH.
+
+tests:
+  - script:
+      - test "$(create --version)" = "create ${{ version }}"
+      - create --help
+
+about:
+  homepage: https://github.com/create-framework/create-cli
+  repository: https://github.com/create-framework/create-cli
+  license: MIT
+  license_file: LICENSE
+  summary: Start and run projects for Create, the creative coding library for Mojo
