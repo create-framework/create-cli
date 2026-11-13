@@ -4,6 +4,11 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Weekly, so the main.mojo template is built against new create releases
+  # even while the CLI is unchanged.
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
 
 jobs:
   ci:
