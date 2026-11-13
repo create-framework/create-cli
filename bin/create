@@ -14,6 +14,9 @@ CHANNELS="https://conda.modular.com/max https://repo.prefix.dev/modular-communit
 # on the other.
 PLATFORMS="linux-64 osx-arm64"
 
+nl='
+'
+
 usage() {
     cat <<EOF
 create $VERSION: start and run Create projects
@@ -64,13 +67,36 @@ EOF
 }
 
 cmd_new() {
-    [ $# -eq 1 ] || die "usage: create new <path>"
-    path=${1%/}
-    [ -n "$path" ] || die "usage: create new <path>"
+    path=
+    paths=0
+    options=1
+    for arg; do
+        if [ -n "$options" ]; then
+            case $arg in
+                --) options=; continue ;;
+                -*) die "unknown option '$arg'" ;;
+            esac
+        fi
+        path=$arg
+        paths=$((paths + 1))
+    done
+    [ "$paths" -eq 1 ] || die "usage: create new <path>"
+    case $path in
+        '') die "the path is empty" ;;
+        *"$nl"*) die "the path has a line break in it" ;;
+    esac
+    # Drop trailing slashes, but keep / itself.
+    while :; do
+        case $path in
+            ?*/) path=${path%/} ;;
+            *) break ;;
+        esac
+    done
+
     [ ! -e "$path" ] || die "'$path' already exists"
     require_pixi
 
-    title=$(basename "$path")
+    title=${path##*/}
     set --
     for channel in $CHANNELS; do set -- "$@" --channel "$channel"; done
     for platform in $PLATFORMS; do set -- "$@" --platform "$platform"; done
@@ -78,7 +104,7 @@ cmd_new() {
     # A half-made project is removed, so the command can simply be rerun.
     trap 'rm -rf "$path"' EXIT
     trap 'exit 130' INT TERM
-    pixi init "$@" "$path"
+    pixi init "$@" -- "$path"
     pixi add --manifest-path "$path/pixi.toml" mojo create
     main_mojo "$title" >"$path/main.mojo"
     trap - EXIT INT TERM

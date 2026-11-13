@@ -100,6 +100,21 @@ says "cd demo" "new"
 run new demo; fails "new over an existing project"
 touch file; run new file; fails "new over a file"
 
+fresh new-bad-args
+run new --frobnicate demo; fails "new with an unknown option"; says "unknown option '--frobnicate'" "an unknown option"
+run new; fails "new without a path"
+run new a b; fails "new with two paths"
+run new ''; fails "new with an empty path"
+[ -z "$(ls -A)" ] || fail "a bad new made something: $(ls -A)"
+
+fresh new-dash
+run new -- -odd; ok "new -- -odd"
+[ -f ./-odd/main.mojo ] || fail "new -- -odd: no project"
+
+fresh new-slashes
+run new demo///; ok "new with trailing slashes"
+grep -qF 'run[MyApp]("demo")' demo/main.mojo || fail "trailing slashes: wrong title"
+
 fresh new-fail
 STUB_FAIL=add run new demo; fails "new when pixi add fails"
 says "stub: add failed" "the failing pixi's output is not shown"
