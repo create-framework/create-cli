@@ -25,3 +25,14 @@ jobs:
       - run: pixi run test
       - run: pixi run e2e
       - run: pixi run package
+
+  # New projects get the Create releases bin/create pins (CREATE_SPEC); this
+  # builds the template against the newest one, so a breaking Create release
+  # shows up here before the pin is moved past it.
+  latest-create:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.11.3
+      - run: pixi run e2e-latest

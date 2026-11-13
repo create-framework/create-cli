@@ -53,11 +53,16 @@ To update the CLI: `pixi global update create-cli`.
 The CLI is one POSIX shell script, [bin/create](bin/create), packaged as a `noarch` conda package.
 
 ```sh
-pixi run lint      # shellcheck
-pixi run test      # offline tests, against a stub pixi (tests/unit.sh)
-pixi run e2e       # end to end: create new, then create build and create doctor (needs the network)
-pixi run package   # build the conda package into build/
+pixi run lint         # shellcheck
+pixi run test         # offline tests, against a stub pixi (tests/unit.sh)
+pixi run e2e          # end to end: create new, then create build and create doctor (needs the network)
+pixi run e2e-latest   # the same, with the newest Create instead of the pinned one
+pixi run package      # build the conda package into build/
 ```
+
+New projects get the Create releases in `CREATE_SPEC` in [bin/create](bin/create), the ones
+its `main.mojo` template is written for. CI builds the template against the newest Create every
+week; when that fails, update the template and `CREATE_SPEC` together.
 
 To release, push a `vX.Y.Z` tag: the release workflow builds the package with that version
 written into the script, and uploads it to the channel.
