@@ -17,6 +17,32 @@ PLATFORMS="linux-64 osx-arm64"
 nl='
 '
 
+# Colour only on a terminal, and never with NO_COLOR set (https://no-color.org).
+color_out=
+color_err=
+if [ -z "${NO_COLOR:-}" ]; then
+    if [ -t 1 ]; then color_out=1; fi
+    if [ -t 2 ]; then color_err=1; fi
+fi
+
+# paint <on> <sgr> <text>
+paint() {
+    if [ -n "$1" ]; then
+        printf '\033[%sm%s\033[0m' "$2" "$3"
+    else
+        printf '%s' "$3"
+    fi
+}
+
+die() {
+    printf '%s %s\n' "$(paint "$color_err" '1;31' 'create:')" "$1" >&2
+    exit 1
+}
+
+step() {
+    printf '%s %s\n' "$(paint "$color_out" '1;32' '==>')" "$1"
+}
+
 usage() {
     cat <<EOF
 create $VERSION: start and run Create projects
@@ -29,11 +55,6 @@ Usage:
 
 The user guide: https://github.com/create-framework/create/blob/main/docs/README.md
 EOF
-}
-
-die() {
-    printf 'create: %s\n' "$1" >&2
-    exit 1
 }
 
 require_pixi() {
@@ -94,9 +115,24 @@ def main() raises:
 EOF
 }
 
+# quietly <command...>: runs it with its output kept in $log, and shows that
+# output if it fails. With --verbose the output is shown as it happens.
+quietly() {
+    if [ -n "$verbose" ]; then
+        "$@"
+        return
+    fi
+    "$@" >"$log" 2>&1 || {
+        status=$?
+        cat "$log" >&2
+        return "$status"
+    }
+}
+
 # Empties the project directory after a failed `create new`: removes it if
 # the command made it, or just its contents if it was already there.
 undo_new() {
+    rm -f "$log"
     if [ -n "$made_dir" ]; then
         rm -rf -- "$path"
     elif [ -d "$path" ]; then
@@ -105,12 +141,14 @@ undo_new() {
 }
 
 cmd_new() {
+    verbose=
     path=
     paths=0
     options=1
     for arg; do
         if [ -n "$options" ]; then
             case $arg in
+                -v | --verbose) verbose=1; continue ;;
                 --) options=; continue ;;
                 -*) die "unknown option '$arg'" ;;
             esac
@@ -118,7 +156,7 @@ cmd_new() {
         path=$arg
         paths=$((paths + 1))
     done
-    [ "$paths" -eq 1 ] || die "usage: create new <path>"
+    [ "$paths" -eq 1 ] || die "usage: create new [--verbose] <path>"
     case $path in
         '') die "the path is empty" ;;
         *"$nl"*) die "the path has a line break in it" ;;
@@ -150,12 +188,20 @@ cmd_new() {
     for platform in $PLATFORMS; do set -- "$@" --platform "$platform"; done
 
     # A half-made project is removed, so the command can simply be rerun.
+    log=$(mktemp)
     trap undo_new EXIT
     trap 'exit 130' INT TERM
-    pixi init "$@" -- "$path"
-    pixi add --manifest-path "$path/pixi.toml" mojo create
+
+    step "Making $title"
+    quietly pixi init "$@" -- "$path" \
+        || die "could not make the project: pixi init failed"
+    step "Adding Mojo and Create (the first time, this downloads Mojo and can take a few minutes)"
+    quietly pixi add --manifest-path "$path/pixi.toml" mojo create \
+        || die "could not add mojo and create: pixi add failed"
     main_mojo "$(mojo_string "$title")" >"$path/main.mojo"
+
     trap - EXIT INT TERM
+    rm -f "$log"
 
     printf '\nMade %s. To run it:\n\n' "$title"
     [ "$path" = . ] || printf '  cd %s\n' "$(shell_quote "$path")"

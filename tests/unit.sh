@@ -96,9 +96,16 @@ logged '[--channel][https://conda.modular.com/max]' "new"
 logged '[--platform][linux-64][--platform][osx-arm64]' "new"
 logged '[add][--manifest-path][demo/pixi.toml][mojo][create]' "new"
 says "cd demo" "new"
+case $out in *"stub: added"*) fail "new: pixi's output is shown without --verbose" ;; esac
+case $out in *"$(printf '\033')"*) fail "new: colour when not on a terminal" ;; esac
 
 run new demo; fails "new over an existing project"; says "not empty" "new over an existing project"
 touch file; run new file; fails "new over a file"
+
+fresh new-verbose
+run new --verbose demo; ok "new --verbose"; says "stub: added" "new --verbose"
+fresh new-verbose-after
+run new demo -v; ok "new with -v after the path"; says "stub: added" "new -v after the path"
 
 fresh new-bad-args
 run new --frobnicate demo; fails "new with an unknown option"; says "unknown option '--frobnicate'" "an unknown option"
