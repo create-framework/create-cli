@@ -97,7 +97,7 @@ logged '[--platform][linux-64][--platform][osx-arm64]' "new"
 logged '[add][--manifest-path][demo/pixi.toml][mojo][create]' "new"
 says "cd demo" "new"
 
-run new demo; fails "new over an existing project"
+run new demo; fails "new over an existing project"; says "not empty" "new over an existing project"
 touch file; run new file; fails "new over a file"
 
 fresh new-bad-args
@@ -121,10 +121,25 @@ grep -qF 'run[MyApp]("my \"odd\\ project")' "my \"odd\\ project/main.mojo" \
     || fail "quotes are not escaped in main.mojo: $(grep 'run\[' "my \"odd\\ project/main.mojo")"
 says "cd 'my \"odd\\ project'" "the cd hint is not quoted"
 
+fresh new-empty-dir
+mkdir empty
+run new empty; ok "new in an empty directory"; [ -f empty/main.mojo ] || fail "new empty: no main.mojo"
+
+fresh new-dot
+mkdir here && cd here
+run new .; ok "new ."
+[ -f main.mojo ] || fail "new .: no main.mojo"
+grep -qF 'run[MyApp]("here")' main.mojo || fail "new .: the title is not the directory's name"
+case $out in *"cd "*) fail "new .: says to cd" ;; esac
+
 fresh new-fail
 STUB_FAIL=add run new demo; fails "new when pixi add fails"
 says "stub: add failed" "the failing pixi's output is not shown"
 [ ! -e demo ] || fail "a failed new left demo behind"
+mkdir empty
+STUB_FAIL=add run new empty; fails "new in a directory when pixi add fails"
+[ -d empty ] || fail "a failed new removed a directory it did not make"
+[ -z "$(ls -A empty)" ] || fail "a failed new left files in empty: $(ls -A empty)"
 STUB_FAIL=init run new demo; fails "new when pixi init fails"
 [ ! -e demo ] || fail "a failed init left demo behind"
 

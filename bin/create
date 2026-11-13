@@ -94,6 +94,16 @@ def main() raises:
 EOF
 }
 
+# Empties the project directory after a failed `create new`: removes it if
+# the command made it, or just its contents if it was already there.
+undo_new() {
+    if [ -n "$made_dir" ]; then
+        rm -rf -- "$path"
+    elif [ -d "$path" ]; then
+        (cd "$path" && rm -rf -- ./* ./.[!.]* ./..?*)
+    fi
+}
+
 cmd_new() {
     path=
     paths=0
@@ -121,17 +131,26 @@ cmd_new() {
         esac
     done
 
-    [ ! -e "$path" ] || die "'$path' already exists"
+    if [ -e "$path" ]; then
+        [ -d "$path" ] || die "'$path' already exists"
+        [ -z "$(ls -A "$path")" ] || die "'$path' already exists and is not empty"
+        [ -w "$path" ] || die "'$path' is not writable"
+        made_dir=
+        title=$(cd -- "$path" && pwd -P)
+        title=${title##*/}
+    else
+        made_dir=1
+        title=${path##*/}
+    fi
     require_pixi
     require_platform
 
-    title=${path##*/}
     set --
     for channel in $CHANNELS; do set -- "$@" --channel "$channel"; done
     for platform in $PLATFORMS; do set -- "$@" --platform "$platform"; done
 
     # A half-made project is removed, so the command can simply be rerun.
-    trap 'rm -rf "$path"' EXIT
+    trap undo_new EXIT
     trap 'exit 130' INT TERM
     pixi init "$@" -- "$path"
     pixi add --manifest-path "$path/pixi.toml" mojo create
@@ -139,7 +158,7 @@ cmd_new() {
     trap - EXIT INT TERM
 
     printf '\nMade %s. To run it:\n\n' "$title"
-    printf '  cd %s\n' "$(shell_quote "$path")"
+    [ "$path" = . ] || printf '  cd %s\n' "$(shell_quote "$path")"
     printf '  create run\n\n'
 }
 
