@@ -37,7 +37,8 @@ The CLI is one POSIX shell script, [bin/create](bin/create), packaged as a `noar
 
 ```sh
 pixi run lint      # shellcheck
-pixi run test      # end to end: create new, then build its main.mojo (needs the network)
+pixi run test      # offline tests, against a stub pixi (tests/unit.sh)
+pixi run e2e       # end to end: create new, then build its main.mojo (needs the network)
 pixi run package   # build the conda package into build/
 ```
 
