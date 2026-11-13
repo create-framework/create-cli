@@ -14,6 +14,9 @@ CHANNELS="https://conda.modular.com/max https://repo.prefix.dev/modular-communit
 # on the other.
 PLATFORMS="linux-64 osx-arm64"
 
+# What `create watch` uses to rerun the program; pixi fetches it on first use.
+WATCHEXEC_SPEC="watchexec>=2,<3"
+
 GUIDE="https://github.com/create-framework/create/blob/main/docs/README.md"
 
 nl='
@@ -52,6 +55,7 @@ create $VERSION: start and run Create projects
 Usage:
   create new <path>        Make a project at <path> with mojo, create and a main.mojo
   create run [args...]     Run the project's main.mojo, passing args to the program
+  create watch [args...]   Run main.mojo, and run it again whenever a .mojo file is saved
   create build [options]   Build main.mojo into an optimised program in build/
   create --version         Print the version
   create --help            Print this help
@@ -88,6 +92,18 @@ the program: 'create run gpu' runs it on the GPU backend. The program runs in
 the project's directory, so paths it opens are relative to the project.
 
 To pass --help to the program, put '--' first: create run -- --help
+EOF
+}
+
+usage_watch() {
+    cat <<EOF
+Usage: create watch [args...]
+
+Runs the project's main.mojo like 'create run', and restarts it whenever a
+.mojo file in the project is saved. Stop it with Ctrl-C. watchexec does the
+watching; pixi downloads it the first time.
+
+To pass --help to the program, put '--' first: create watch -- --help
 EOF
 }
 
@@ -251,7 +267,7 @@ cmd_new() {
 
     printf '\nMade %s. To run it:\n\n' "$title"
     [ "$path" = . ] || printf '  cd %s\n' "$(shell_quote "$path")"
-    printf '  create run\n\n'
+    printf '  create run      (or create watch, to rerun it on every save)\n\n'
 }
 
 # The nearest directory at or above the current one with a pixi.toml and a
@@ -294,6 +310,18 @@ cmd_run() {
     exec pixi run mojo run main.mojo "$@"
 }
 
+cmd_watch() {
+    program_args usage_watch "$@"
+    shift "$skip"
+    require_pixi
+    require_platform
+    root=$(require_project)
+    cd "$root"
+    exec pixi exec --spec "$WATCHEXEC_SPEC" -- watchexec \
+        --restart --exts mojo --ignore '.pixi/**' --ignore 'build/**' --shell=none \
+        -- pixi run mojo run main.mojo "$@"
+}
+
 cmd_build() {
     case ${1-} in
         -h | --help) usage_build; exit 0 ;;
@@ -325,6 +353,7 @@ shift
 case $command in
     new) cmd_new "$@" ;;
     run) cmd_run "$@" ;;
+    watch) cmd_watch "$@" ;;
     build) cmd_build "$@" ;;
     -V | --version | version) printf 'create %s\n' "$VERSION" ;;
     -h | --help | help) usage ;;
