@@ -21,7 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: prefix-dev/setup-pixi@v0.11.3
+      # Linting does not depend on the platform, so once is enough; and
+      # shellcheck 0.11.0 on osx-arm64 reports SC2218 ("only defined later")
+      # for functions defined at the top of bin/create, which Linux's does not.
       - run: pixi run lint
+        if: runner.os == 'Linux'
       - run: pixi run test
       - run: pixi run e2e
       - run: pixi run package
