@@ -82,7 +82,7 @@ not_logged() { ! grep -qF -- "$1" "$STUB_LOG" || fail "$2: pixi was called with 
 
 fresh top
 run --version; ok "--version"; says "create dev" "--version"
-run --help; ok "--help"; says "create run" "--help"
+run --help; ok "--help"; says "create watch" "--help"
 run; fails "no command"
 run bogus; fails "an unknown command"; says "unknown command 'bogus'" "an unknown command"
 
@@ -186,6 +186,17 @@ mkdir -p demo/nested && : >demo/nested/pixi.toml
 : >"$STUB_LOG"
 (cd demo/nested && run run && ok "run in a nested workspace")
 logged "cwd=$dir/demo" "run in a nested workspace"
+
+# --- watch
+
+fresh watch
+"$create" new demo >/dev/null
+: >"$STUB_LOG"
+(cd demo && run watch arg && ok "watch")
+logged '[exec][--spec][watchexec>=' "watch"
+logged '[--restart][--exts][mojo]' "watch"
+logged '[--][pixi][run][mojo][run][main.mojo][arg]' "watch"
+(cd demo && run watch --help && ok "watch --help" && says "Usage: create watch" "watch --help")
 
 # --- build
 
