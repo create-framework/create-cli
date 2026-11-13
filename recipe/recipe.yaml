@@ -26,7 +26,7 @@ build:
 
 tests:
   - script:
-      - test "$(create --version)" = "create ${{ version }}"
+      - test "$(create --version)" = "create-cli ${{ version }}"
       - create --help
       - create new --help
 
