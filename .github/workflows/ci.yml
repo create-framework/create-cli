@@ -12,7 +12,12 @@ on:
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The two platforms Create supports: linux-64 and osx-arm64.
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
       - uses: prefix-dev/setup-pixi@v0.11.3
