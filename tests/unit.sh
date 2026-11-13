@@ -115,6 +115,12 @@ fresh new-slashes
 run new demo///; ok "new with trailing slashes"
 grep -qF 'run[MyApp]("demo")' demo/main.mojo || fail "trailing slashes: wrong title"
 
+fresh new-quoting
+run new 'my "odd\ project'; ok "new with quotes, a backslash and a space"
+grep -qF 'run[MyApp]("my \"odd\\ project")' "my \"odd\\ project/main.mojo" \
+    || fail "quotes are not escaped in main.mojo: $(grep 'run\[' "my \"odd\\ project/main.mojo")"
+says "cd 'my \"odd\\ project'" "the cd hint is not quoted"
+
 fresh new-fail
 STUB_FAIL=add run new demo; fails "new when pixi add fails"
 says "stub: add failed" "the failing pixi's output is not shown"
