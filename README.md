@@ -27,7 +27,7 @@ create update             # updates Mojo and Create within the versions the proj
 create doctor             # checks pixi, this machine and the project for problems
 ```
 
-- `create new <path>` makes a project with the Modular, modular-community and conda-forge
+- `create new <path>` makes a project with the Modular, Create and conda-forge
   channels, for Linux (x86-64) and macOS (Apple silicon), adds the `mojo` and `create` packages
   and writes a `main.mojo` to start from. `<path>` may be an empty directory, so `create new .`
   sets up the current one. If a step fails, nothing is left behind. `--verbose` shows pixi's
