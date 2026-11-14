@@ -27,11 +27,10 @@ create update             # updates Mojo and Create within the versions the proj
 create doctor             # checks pixi, this machine and the project for problems
 ```
 
-- `create new <path>` makes a project with the Modular, Create and conda-forge
-  channels, for Linux (x86-64) and macOS (Apple silicon), adds the `mojo` and `create` packages
-  and writes a `main.mojo` to start from. `<path>` may be an empty directory, so `create new .`
-  sets up the current one. If a step fails, nothing is left behind. `--verbose` shows pixi's
-  output.
+- `create new <path>` makes a project with the Modular, Create and conda-forge channels, for
+  Linux (x86-64) and macOS (Apple silicon), adds the `mojo` and `create` packages and writes a
+  `main.mojo` to start from. `<path>` may be an empty directory, so `create new .` sets up the
+  current one. If a step fails, nothing is left behind. `--verbose` shows pixi's output.
 - `create run [args...]` runs the project's `main.mojo` from anywhere inside the project,
   passing any arguments to the program: `create run gpu` runs it on the GPU backend. The
   program runs in the project's directory, so the paths it opens are relative to the project.
@@ -53,21 +52,10 @@ create doctor             # checks pixi, this machine and the project for proble
 
 To update the CLI: `pixi global update create-cli`.
 
-## Development
+## Documentation
 
-The CLI is one POSIX shell script, [bin/create](bin/create), packaged as a `noarch` conda package.
-
-```sh
-pixi run lint         # shellcheck
-pixi run test         # offline tests, against a stub pixi (tests/unit.sh)
-pixi run e2e          # end to end: create new, then create build, update and doctor (needs the network)
-pixi run e2e-latest   # the same, with the newest Create instead of the pinned one
-pixi run package      # build the conda package into build/
-```
-
-New projects get the Create releases in `CREATE_SPEC` in [bin/create](bin/create), the ones
-its `main.mojo` template is written for. CI builds the template against the newest Create every
-week; when that fails, update the template and `CREATE_SPEC` together.
-
-To release, push a `vX.Y.Z` tag: the release workflow builds the package with that version
-written into the script, and uploads it to the channel.
+- [Create's user guide](https://github.com/create-framework/create/blob/main/docs/README.md):
+  how to write a program with Create.
+- [Contributing](CONTRIBUTING.md): how to work on the CLI itself: what it values, building and
+  testing, and how changes land.
+- [Releasing](RELEASING.md): for maintainers, how a version is released.
