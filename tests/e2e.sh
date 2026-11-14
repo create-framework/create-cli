@@ -29,6 +29,7 @@ fail() {
 "$create" new demo || fail "create new"
 [ -f demo/pixi.toml ] || fail "no pixi.toml"
 [ -f demo/main.mojo ] || fail "no main.mojo"
+[ -f demo/assets/logo.png ] || fail "no assets/logo.png"
 
 if [ -n "$latest" ]; then
     pixi add --manifest-path demo/pixi.toml create || fail "moving to the newest create"

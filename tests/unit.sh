@@ -10,6 +10,7 @@
 set -eu
 
 create="$(cd "$(dirname "$0")/.." && pwd)/bin/create"
+logo="$(dirname "$create")/../share/create-cli/template/assets/logo.png"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 work=$(cd "$work" && pwd -P)
@@ -105,6 +106,7 @@ run new demo; ok "new"
 [ -f demo/main.mojo ] || fail "new: no main.mojo"
 grep -qF 'run[MyApp]("demo")' demo/main.mojo || fail "new: the title is not the project's name"
 grep -qxF '/build/' demo/.gitignore || fail "new: build/ is not ignored"
+cmp -s demo/assets/logo.png "$logo" || fail "new: no assets/logo.png"
 logged '[--channel][https://conda.modular.com/max]' "new"
 logged '[--platform][linux-64][--platform][osx-arm64]' "new"
 logged '[add][--manifest-path][demo/pixi.toml][mojo][create>=' "new"
@@ -156,6 +158,13 @@ run new .; ok "new ."
 [ -f main.mojo ] || fail "new .: no main.mojo"
 grep -qF 'run[MyApp]("here")' main.mojo || fail "new .: the title is not the directory's name"
 case $out in *"cd "*) fail "new .: says to cd" ;; esac
+[ -f assets/logo.png ] || fail "new .: no assets/logo.png"
+
+fresh new-symlink
+ln -s "$create" create
+status=0; out=$(./create new demo 2>&1) || status=$?
+ok "new through a symlink to the script"
+cmp -s demo/assets/logo.png "$logo" || fail "new through a symlink: no assets/logo.png"
 
 fresh new-fail
 (export STUB_FAIL=add; run new demo; fails "new when pixi add fails"

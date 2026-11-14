@@ -66,13 +66,14 @@ is used.
 | Path | What it is |
 |---|---|
 | [bin/create](bin/create) | The CLI: one POSIX `sh` script, with a `cmd_<name>` and a `usage_<name>` per command |
+| [share/create-cli/template/](share/create-cli/template/) | The files `create new` copies into every project besides `main.mojo`, such as `assets/logo.png`; the package installs them at the same path beside `bin/` |
 | [tests/unit.sh](tests/unit.sh) | Offline tests: `bin/create` against a stub `pixi` that records how it is called |
 | [tests/e2e.sh](tests/e2e.sh) | End to end, against the real pixi: `create new`, then `build`, `update` and `doctor` |
 | [recipe/recipe.yaml](recipe/recipe.yaml) | The `noarch` conda package; the build writes the release's version into the script |
 | [.github/workflows/](.github/workflows/) | CI (`ci.yml`) and the release (`release.yml`) |
 
 **The template and `CREATE_SPEC`.** `create new` writes a `main.mojo` from the template in
-`main_mojo()` and adds Create at `CREATE_SPEC`, the releases that template is written for. So
+`main_mojo()`, copies in the files under `share/create-cli/template/`, and adds Create at `CREATE_SPEC`, the releases that template is written for. So
 a new project always builds, even after Create changes its API. CI builds the template against
 the newest Create every week (`pixi run e2e-latest`); when that fails, update the template and
 `CREATE_SPEC` together. Write the template's Mojo for the Create release it pins, by
