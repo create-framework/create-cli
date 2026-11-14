@@ -54,7 +54,7 @@ To update the CLI: `pixi global update create-cli`.
 
 ## Documentation
 
-- [Create's user guide](https://github.com/create-framework/create/blob/main/docs/README.md):
+- [Create's user guide](https://create-framework.org/guide/):
   how to write a program with Create.
 - [Contributing](CONTRIBUTING.md): how to work on the CLI itself: what it values, building and
   testing, and how changes land.

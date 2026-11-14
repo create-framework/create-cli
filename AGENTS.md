@@ -18,7 +18,7 @@ These apply to every task and are imported below:
 ## When the task touches it
 
 - [RELEASING.md](RELEASING.md), only when asked to cut a release.
-- [Create's user guide](https://github.com/create-framework/create/blob/main/docs/README.md),
+- [Create's user guide](https://create-framework.org/guide/),
   when changing the `main.mojo` template: it is Mojo written against the Create release
   `CREATE_SPEC` pins.
 

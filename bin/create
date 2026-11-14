@@ -25,7 +25,7 @@ CREATE_SPEC="create>=0.2,<0.3"
 # What `create watch` uses to rerun the program; pixi fetches it on first use.
 WATCHEXEC_SPEC="watchexec>=2,<3"
 
-GUIDE="https://github.com/create-framework/create/blob/main/docs/README.md"
+GUIDE="https://create-framework.org/guide/"
 
 nl='
 '
