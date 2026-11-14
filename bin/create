@@ -27,6 +27,19 @@ WATCHEXEC_SPEC="watchexec>=2,<3"
 
 GUIDE="https://create-framework.org/guide/"
 
+# The files every new project starts with besides main.mojo, such as the logo
+# it draws: share/create-cli/template beside bin/, in the checkout and in the
+# installed package alike. A symlink to the script is followed to find it.
+script=$0
+while [ -L "$script" ]; do
+    target=$(readlink "$script")
+    case $target in
+        /*) script=$target ;;
+        *) script=$(dirname "$script")/$target ;;
+    esac
+done
+TEMPLATE="$(cd "$(dirname "$script")/.." && pwd -P)/share/create-cli/template"
+
 nl='
 '
 
@@ -85,7 +98,8 @@ Makes a project at <path>, which must not exist or be an empty directory
 ('create new .' makes one in the current directory). The project is a pixi
 project with the Modular, Create and conda-forge channels, for
 Linux (x86-64) and macOS (Apple silicon), with the mojo and create packages
-and a main.mojo to start from. If a step fails, nothing is left behind.
+and a main.mojo to start from, which draws the Create logo from
+assets/logo.png. If a step fails, nothing is left behind.
 
 Options:
   -v, --verbose   Show pixi's output
@@ -195,15 +209,18 @@ from create import *
 
 @fieldwise_init
 struct MyApp(Program):
+    var logo: Image
+
     @staticmethod
     def create(mut context: Context, mut canvas: Canvas) raises -> MyApp:
         # Called once: set initial application state and draw the first frame
-        return MyApp()
+        return MyApp(Image.load("assets/logo.png"))
 
     def update(mut self, mut context: Context, mut canvas: Canvas) raises:
         # Called once per frame: handle input, modify state and draw to the screen
+        canvas.image(self.logo, (0, 40))
         canvas.font_size(48)
-        canvas.text("Create!", (0, 0))
+        canvas.text("Create", (0, -110))
 
 
 def main() raises:
@@ -296,6 +313,8 @@ cmd_new() {
     quietly pixi add --manifest-path "$path/pixi.toml" mojo "$CREATE_SPEC" \
         || die "could not add mojo and create: pixi add failed"
     main_mojo "$(mojo_string "$title")" >"$path/main.mojo"
+    cp -R -- "$TEMPLATE/." "$path" \
+        || die "could not copy the template's files from $TEMPLATE"
     printf '\n# create build output\n/build/\n' >>"$path/.gitignore"
 
     trap - EXIT INT TERM
