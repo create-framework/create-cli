@@ -76,7 +76,7 @@ is used.
 a new project always builds, even after Create changes its API. CI builds the template against
 the newest Create every week (`pixi run e2e-latest`); when that fails, update the template and
 `CREATE_SPEC` together. Write the template's Mojo for the Create release it pins, by
-[Create's user guide](https://github.com/create-framework/create/blob/main/docs/README.md).
+[Create's user guide](https://create-framework.org/guide/).
 
 ## Building and testing
 
