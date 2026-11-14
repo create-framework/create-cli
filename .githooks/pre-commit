@@ -1,0 +1,8 @@
+#!/bin/sh
+# The fast checks, about a second: shellcheck and the offline tests against a
+# stub pixi. The end-to-end test and the package run in CI
+# (.github/workflows/ci.yml).
+set -u
+
+pixi run lint || { echo "shellcheck failed — commit aborted."; exit 1; }
+pixi run test || { echo "The offline tests failed — commit aborted."; exit 1; }
