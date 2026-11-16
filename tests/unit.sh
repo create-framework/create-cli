@@ -39,7 +39,43 @@ case $1 in
     add) echo "stub: added" ;;
     run | exec) printf 'cwd=%s\n' "$(pwd -P)" >>"$STUB_LOG" ;;
     update) : >"$(dirname "$STUB_LOG")/updated" ;;
-    upgrade) : >"$(dirname "$STUB_LOG")/upgraded" ;;
+    upgrade)
+        case "$*" in
+            *--dry-run*)
+                # Until the project is upgraded, create 0.2.0 is beyond
+                # what it allows, as pixi upgrade --json reports it.
+                if [ -e "$(dirname "$STUB_LOG")/upgraded" ]; then
+                    printf '{\n  "version": 1,\n  "environment": {}\n}\n'
+                else
+                    cat <<'JSON'
+{
+  "version": 1,
+  "environment": {
+    "default": {
+      "linux-64": [
+        {
+          "name": "create",
+          "before": {
+            "conda": "https://prefix.dev/create-framework/create/linux-64/create-0.1.2-hb0f4dca_0.conda",
+            "size": 4663743
+          },
+          "after": {
+            "conda": "https://prefix.dev/create-framework/create/linux-64/create-0.2.0-hb0f4dca_0.conda",
+            "size": 4698441
+          },
+          "type": "conda",
+          "explicit": true
+        }
+      ]
+    }
+  }
+}
+JSON
+                fi
+                ;;
+            *) : >"$(dirname "$STUB_LOG")/upgraded" ;;
+        esac
+        ;;
     list)
         # create moves to 0.1.2 once the project is updated, and to 0.2.0
         # once it is upgraded.
@@ -244,9 +280,16 @@ fresh update
 "$create" new demo >/dev/null
 mkdir demo/src
 : >"$STUB_LOG"
-(cd demo/src && run update && ok "update" \
-    && says "create 0.1.1 -> 0.1.2" "update" && says "mojo 1.1.0 (unchanged)" "update" \
-    && case $out in *"stub:"*) fail "update: pixi's output is shown without --verbose" ;; esac)
+(cd demo/src && run update
+    ok "update"
+    says "create 0.1.1 -> 0.1.2" "update"
+    says "mojo 1.1.0 (unchanged)" "update"
+    says "create 0.2.0, https://github.com/create-framework/create/releases/tag/v0.2.0" "update's note of a newer create"
+    says "create upgrade" "update's note of a newer create"
+    if printf '%s\n' "$out" | grep -q '^  mojo .*, https'; then
+        fail "update notes a newer mojo that is not out: $out"
+    fi
+    case $out in *"stub:"*) fail "update: pixi's output is shown without --verbose" ;; esac)
 logged "[update][--manifest-path][$dir/demo/pixi.toml]" "update"
 rm -f "$work/updated"
 (cd demo && export STUB_FAIL=update && run update && fails "update when pixi update fails" \
@@ -268,7 +311,9 @@ mkdir demo/src
 logged "[upgrade][--manifest-path][$dir/demo/pixi.toml][mojo][create]" "upgrade"
 (cd demo && run upgrade && ok "upgrade when up to date" \
     && case $out in *"See the release notes"*) fail "upgrade with nothing to upgrade points to the release notes" ;; esac)
-rm -f "$work/upgraded"
+(cd demo && run update && ok "update once upgraded" \
+    && case $out in *"Newer than"*) fail "update notes a newer release once upgraded: $out" ;; esac)
+rm -f "$work/upgraded" "$work/updated"
 (cd demo && export STUB_FAIL=upgrade && run upgrade && fails "upgrade when pixi upgrade fails" \
     && says "stub: upgrade failed" "upgrade when pixi upgrade fails")
 (cd demo && run upgrade --help && ok "upgrade --help" && says "Usage: create upgrade" "upgrade --help")
