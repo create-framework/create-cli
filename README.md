@@ -29,9 +29,11 @@ create doctor             # checks pixi, this machine and the project for proble
 ```
 
 - `create new <path>` creates a new project with the Modular, Create and conda-forge channels, for
-  Linux (x86-64) and macOS (Apple silicon), adds the `mojo` and `create` packages and writes a
-  `main.mojo` to start from, which draws the Create logo from `assets/logo.png`. `<path>` may be an empty directory, so `create new .` sets up the
-  current one. If a step fails, nothing is left behind. `--verbose` shows pixi's output.
+  Linux (x86-64) and macOS (Apple silicon), adds the newest `mojo` and `create` packages, and
+  copies in the project template that Create release ships: a `main.mojo` to start from, which
+  draws the Create logo from `assets/logo.png`. `<path>` may be an empty directory, so
+  `create new .` sets up the current one. If a step fails, nothing is left behind. `--verbose`
+  shows pixi's output.
 - `create run [args...]` runs the project's `main.mojo` from anywhere inside the project,
   passing any arguments to the program: `create run gpu` runs it on the GPU backend. The
   program runs in the project's directory, so the paths it opens are relative to the project.

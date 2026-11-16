@@ -15,30 +15,10 @@ CHANNELS="https://conda.modular.com/max https://prefix.dev/create-framework/crea
 # on the other.
 PLATFORMS="linux-64 osx-arm64"
 
-# The Create releases the main.mojo template below is written for. New projects
-# stay on these even after Create changes its API, so a CLI never makes a
-# project that does not build. CI builds the template against the newest
-# Create every week (tests/e2e.sh --latest); when that fails, update the
-# template and this range together.
-CREATE_SPEC="create>=0.2,<0.3"
-
 # What `create watch` uses to rerun the program; pixi fetches it on first use.
 WATCHEXEC_SPEC="watchexec>=2,<3"
 
 GUIDE="https://create-framework.org/guide/"
-
-# The files every new project starts with besides main.mojo, such as the logo
-# it draws: share/create-cli/template beside bin/, in the checkout and in the
-# installed package alike. A symlink to the script is followed to find it.
-script=$0
-while [ -L "$script" ]; do
-    target=$(readlink "$script")
-    case $target in
-        /*) script=$target ;;
-        *) script=$(dirname "$script")/$target ;;
-    esac
-done
-TEMPLATE="$(cd "$(dirname "$script")/.." && pwd -P)/share/create-cli/template"
 
 nl='
 '
@@ -117,9 +97,10 @@ $(out bold Usage:) create new [--verbose] <path>
 Creates a new project at <path>, which must not exist or be an empty directory
 ('$(out command 'create new .')' creates one in the current directory). The project is a pixi
 project with the Modular, Create and conda-forge channels, for
-Linux (x86-64) and macOS (Apple silicon), with the mojo and create packages
-and a main.mojo to start from, which draws the Create logo from
-assets/logo.png. If a step fails, nothing is left behind.
+Linux (x86-64) and macOS (Apple silicon), with the newest mojo and create
+packages and the project template that Create release ships: a main.mojo to
+start from, which draws the Create logo from assets/logo.png. If a step fails,
+nothing is left behind.
 
 $(out bold Options:)
   -v, --verbose   Show pixi's output
@@ -237,33 +218,30 @@ mojo_string() {
     printf '%s' "$1" | sed 's/[\\"]/\\&/g'
 }
 
-# The template for main.mojo; $1 is the window's title, already escaped.
-main_mojo() {
-    cat <<EOF
-# See $GUIDE to get started
+# Where the Create package installed in the project at <path> keeps the
+# project template: main.mojo and the files it loads, with {{name}} in
+# main.mojo for the project's name. Each Create release ships the template
+# written for it.
+template_dir() {
+    prefix=$(pixi run --manifest-path "$1/pixi.toml" printenv CONDA_PREFIX 2>>"$log") \
+        || return 1
+    printf '%s/share/create/template\n' "$prefix"
+}
 
-from create import *
-
-
-@fieldwise_init
-struct MyApp(Program):
-    var logo: Image
-
-    @staticmethod
-    def create(mut context: Context, mut canvas: Canvas) raises -> MyApp:
-        # Called once: set initial application state and draw the first frame
-        return MyApp(Image.load("assets/logo.png"))
-
-    def update(mut self, mut context: Context, mut canvas: Canvas) raises:
-        # Called once per frame: handle input, modify state and draw to the screen
-        canvas.image(self.logo, (0, 40))
-        canvas.font_size(48)
-        canvas.text("Create", (0, -110))
-
-
-def main() raises:
-    run[MyApp]("$1")
-EOF
+# fill_name <file> <name>: replaces {{name}} in <file> with <name>, escaped
+# for a Mojo string.
+fill_name() {
+    NAME=$(mojo_string "$2") awk '
+        BEGIN { name = ENVIRON["NAME"] }
+        {
+            rest = $0
+            line = ""
+            while ((i = index(rest, "{{name}}")) > 0) {
+                line = line substr(rest, 1, i - 1) name
+                rest = substr(rest, i + 8)
+            }
+            print line rest
+        }' "$1" >"$1.new" && mv -- "$1.new" "$1"
 }
 
 # quietly <command...>: runs it with its output kept in $log, and shows that
@@ -348,11 +326,16 @@ cmd_new() {
     quietly pixi init "$@" -- "$path" \
         || die "could not create the project: pixi init failed"
     step "Adding the Mojo and Create pixi packages"
-    quietly pixi add --manifest-path "$path/pixi.toml" mojo "$CREATE_SPEC" \
+    quietly pixi add --manifest-path "$path/pixi.toml" mojo create \
         || die "could not add the Mojo and Create packages: pixi add failed"
-    main_mojo "$(mojo_string "$title")" >"$path/main.mojo"
-    cp -R -- "$TEMPLATE/." "$path" \
-        || die "could not copy the template's files from $TEMPLATE"
+    template=$(template_dir "$path") \
+        || die "could not find the Create package: pixi run failed"
+    [ -f "$template/main.mojo" ] \
+        || die "the Create package has no project template; create new needs Create 0.3.1 or later"
+    cp -R -- "$template/." "$path" \
+        || die "could not copy the project template from $template"
+    fill_name "$path/main.mojo" "$title" \
+        || die "could not write the project's name into main.mojo"
     printf '\n# create build output\n/build/\n' >>"$path/.gitignore"
 
     trap - EXIT INT TERM

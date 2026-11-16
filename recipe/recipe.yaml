@@ -20,9 +20,6 @@ build:
     - mkdir -p "$PREFIX/bin"
     - sed 's/^VERSION=.*/VERSION="${{ version }}"/' bin/create >"$PREFIX/bin/create"
     - chmod 755 "$PREFIX/bin/create"
-    # The files `create new` copies into every project, found from bin/create.
-    - mkdir -p "$PREFIX/share/create-cli"
-    - cp -R share/create-cli/template "$PREFIX/share/create-cli/"
 
 # No dependency on pixi: the CLI is installed with it, and uses the one on
 # PATH.
@@ -32,7 +29,6 @@ tests:
       - test "$(create --version)" = "create-cli ${{ version }}"
       - create --help
       - create new --help
-      - test -f "$PREFIX/share/create-cli/template/assets/logo.png"
 
 about:
   homepage: https://github.com/create-framework/create-cli

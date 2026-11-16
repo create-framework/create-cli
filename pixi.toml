@@ -7,7 +7,6 @@ platforms = ["linux-64", "osx-arm64"]
 lint = "shellcheck bin/create tests/unit.sh tests/e2e.sh .githooks/pre-commit"
 test = "sh tests/unit.sh"
 e2e = "sh tests/e2e.sh"
-e2e-latest = "sh tests/e2e.sh --latest"
 package = "rattler-build build --recipe recipe/recipe.yaml --output-dir build"
 setup = "git config core.hooksPath .githooks"
 

@@ -12,10 +12,18 @@ set -eu
 create="$(cd "$(dirname "$0")/.." && pwd)/bin/create"
 nl='
 '
-logo="$(dirname "$create")/../share/create-cli/template/assets/logo.png"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 work=$(cd "$work" && pwd -P)
+
+# The environment the stub pixi reports for a project, $STUB_PREFIX, with
+# the project template a Create package installs.
+template="$work/prefix/share/create/template"
+mkdir -p "$template/assets"
+printf '# A template\nrun[MyApp]("{{name}}")\n' >"$template/main.mojo"
+printf 'not really a png\n' >"$template/assets/logo.png"
+logo="$template/assets/logo.png"
+mkdir "$work/old-create"
 
 # The stub pixi. It appends each call to $STUB_LOG, one line with every
 # argument in brackets, and fails the subcommand named by $STUB_FAIL.
@@ -39,7 +47,10 @@ case $1 in
         printf '.pixi/*\n' >"$path/.gitignore"
         ;;
     add) echo "stub: added" ;;
-    run | exec) printf 'cwd=%s\n' "$(pwd -P)" >>"$STUB_LOG" ;;
+    run | exec)
+        printf 'cwd=%s\n' "$(pwd -P)" >>"$STUB_LOG"
+        case "$*" in *"printenv CONDA_PREFIX") printf '%s\n' "$STUB_PREFIX" ;; esac
+        ;;
     update) : >"$(dirname "$STUB_LOG")/updated" ;;
     upgrade)
         case "$*" in
@@ -117,7 +128,8 @@ chmod +x "$work/freebsd/uname"
 
 PATH="$work/bin:$PATH"
 STUB_LOG="$work/log"
-export PATH STUB_LOG
+STUB_PREFIX="$work/prefix"
+export PATH STUB_LOG STUB_PREFIX
 unset STUB_FAIL STUB_NEWER_MOJO NO_COLOR FORCE_COLOR
 
 # Failures are counted in a file, so ones in subshells count too.
@@ -167,7 +179,8 @@ grep -qxF '/build/' demo/.gitignore || fail "new: build/ is not ignored"
 cmp -s demo/assets/logo.png "$logo" || fail "new: no assets/logo.png"
 logged '[--channel][https://conda.modular.com/max]' "new"
 logged '[--platform][linux-64][--platform][osx-arm64]' "new"
-logged '[add][--manifest-path][demo/pixi.toml][mojo][create>=' "new"
+logged '[add][--manifest-path][demo/pixi.toml][mojo][create]' "new"
+logged '[run][--manifest-path][demo/pixi.toml][printenv][CONDA_PREFIX]' "new"
 says "Creating new project 'demo'" "new"
 says "Adding the Mojo and Create pixi packages" "new"
 case $out in *"stub: added"*) fail "new: pixi's output is shown without --verbose" ;; esac
@@ -217,11 +230,14 @@ run new .; ok "new ."
 grep -qF 'run[MyApp]("here")' main.mojo || fail "new .: the title is not the directory's name"
 [ -f assets/logo.png ] || fail "new .: no assets/logo.png"
 
-fresh new-symlink
-ln -s "$create" create
-status=0; out=$(./create new demo 2>&1) || status=$?
-ok "new through a symlink to the script"
-cmp -s demo/assets/logo.png "$logo" || fail "new through a symlink: no assets/logo.png"
+fresh new-old-create
+(export STUB_PREFIX="$work/old-create"; run new demo; fails "new with a Create without a template"
+    says "the Create package has no project template; create new needs Create 0.3.1 or later" \
+        "new with a Create without a template")
+[ ! -e demo ] || fail "new with a Create without a template left demo behind"
+(export STUB_FAIL=run; run new demo; fails "new when pixi run fails"
+    says "could not find the Create package: pixi run failed" "new when pixi run fails")
+[ ! -e demo ] || fail "new when pixi run fails left demo behind"
 
 fresh new-fail
 (export STUB_FAIL=add; run new demo; fails "new when pixi add fails"

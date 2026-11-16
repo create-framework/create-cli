@@ -31,7 +31,8 @@ that means:
 - **No lock-in:** A project is a plain pixi project. Everything the CLI does, pixi can do by
   hand; the CLI keeps no configuration or state of its own.
 - **Safe:** A command that fails leaves nothing half-made behind, and a new project always
-  builds: it is pinned to the Create releases its template is written for.
+  builds: its template comes from the Create release it installs, which is written and tested
+  for that release.
 
 ## Your first change
 
@@ -66,18 +67,18 @@ is used.
 | Path | What it is |
 |---|---|
 | [bin/create](bin/create) | The CLI: one POSIX `sh` script, with a `cmd_<name>` and a `usage_<name>` per command |
-| [share/create-cli/template/](share/create-cli/template/) | The files `create new` copies into every project besides `main.mojo`, such as `assets/logo.png`; the package installs them at the same path beside `bin/` |
 | [tests/unit.sh](tests/unit.sh) | Offline tests: `bin/create` against a stub `pixi` that records how it is called |
-| [tests/e2e.sh](tests/e2e.sh) | End to end, against the real pixi: `create new`, then `build`, `update` and `doctor`; with `--latest`, `upgrade` first |
+| [tests/e2e.sh](tests/e2e.sh) | End to end, against the real pixi and the newest Create: `create new`, then `build`, `update`, `upgrade` and `doctor` |
 | [recipe/recipe.yaml](recipe/recipe.yaml) | The `noarch` conda package; the build writes the release's version into the script |
 | [.github/workflows/](.github/workflows/) | CI (`ci.yml`) and the release (`release.yml`) |
 
-**The template and `CREATE_SPEC`.** `create new` writes a `main.mojo` from the template in
-`main_mojo()`, copies in the files under `share/create-cli/template/`, and adds Create at `CREATE_SPEC`, the releases that template is written for. So
-a new project always builds, even after Create changes its API. CI builds the template against
-the newest Create every week (`pixi run e2e-latest`); when that fails, update the template and
-`CREATE_SPEC` together. Write the template's Mojo for the Create release it pins, by
-[Create's user guide](https://create-framework.org/guide/).
+**The project template is Create's.** `create new` adds the newest Mojo and Create, and pixi
+pins the project to the versions it resolved. It then copies the template that Create package
+installs at `share/create/template` in the project's environment, and replaces `{{name}}` in
+its `main.mojo` with the project's name. The template lives in Create's repository, in
+[template/](https://github.com/create-framework/create/tree/main/template), and Create's CI
+builds it, so each Create release ships one written for it and a Create release needs nothing
+from the CLI. A Create older than 0.3.1 ships no template, and `create new` says so.
 
 ## Building and testing
 
@@ -86,7 +87,6 @@ bin/create new /tmp/demo   # the CLI runs from the checkout
 pixi run lint              # shellcheck every script
 pixi run test              # offline tests against a stub pixi, about a second
 pixi run e2e               # end to end against the real pixi; needs the network, takes minutes
-pixi run e2e-latest        # the same, with the newest Create instead of CREATE_SPEC's
 pixi run package           # the conda package, built and tested, into build/
 pixi run setup             # once per clone: the git hook
 ```
@@ -98,7 +98,7 @@ Two tiers of automated checks:
 | Where | Runs |
 |---|---|
 | `pre-commit` hook (after `pixi run setup`) | `pixi run lint` and `pixi run test`. About a second |
-| CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)), every PR and push to `main` | Lint (Linux only), the offline tests, the end-to-end test and the package, on Linux and macOS. Weekly, also the end-to-end test against the newest Create, on Linux |
+| CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)), every PR and push to `main`, and weekly | Lint (Linux only), the offline tests, the end-to-end test and the package, on Linux and macOS. The weekly run tests the CLI against new pixi and Create releases while it is unchanged |
 
 ## Workflow
 

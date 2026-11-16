@@ -13,8 +13,9 @@ is on too, which is what the README's `pixi global install` installs from.
 The tag is the one place the version is set. `bin/create` says `VERSION="dev"`, and the package
 build writes the tag's version in its place, so there is nothing to bump in a pull request.
 
-While the CLI is at 0.x, a change in what it does or makes, such as a new command or new
-projects pinned to a newer Create, bumps the minor version; a fix bumps the patch.
+While the CLI is at 0.x, a change in what it does or makes, such as a new command, bumps the
+minor version; a fix bumps the patch. A Create release needs no CLI release: new projects get
+the newest Create, and its template, as soon as it is on the channel.
 
 ## The release workflow
 
