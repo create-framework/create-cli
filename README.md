@@ -56,6 +56,9 @@ create doctor             # checks pixi, this machine and the project for proble
 `create <command> --help` explains each command. A project is a plain pixi project, so
 `pixi run mojo run main.mojo` does the same as `create run`.
 
+Output is coloured on a terminal. `NO_COLOR=1` turns colour off, and `FORCE_COLOR=1` turns it
+on elsewhere, such as through a pipe to `less -R`.
+
 To update the CLI: `pixi global update create-cli`.
 
 ## Documentation

@@ -148,11 +148,56 @@ ci: Test on macOS as well
 - **A command is a `cmd_<name>` and a `usage_<name>`,** dispatched at the bottom of the script.
   Its `--help` prints the `usage_` text; a new command also gets a line in `usage`, the README's
   usage block and bullet, and tests.
-- **Output:** progress through `step`, errors through `die` (to stderr, exiting 1), pixi's own
-  output through `quietly`. Colour only on a terminal and never with `NO_COLOR` set, which
-  `paint` handles.
+- **Output** follows the [output style](#output-style): progress through `step`, errors through
+  `die` (to stderr, exiting 1), pixi's own output through `quietly`, and every colour through
+  `out` or `err`.
 - **Clean up on failure.** A command that makes files removes them if it fails, as
   `create new` does through its `EXIT` trap.
 - **Tests:** a behaviour the stub pixi can show is tested in `tests/unit.sh`; only what needs
   the real pixi or Create goes in `tests/e2e.sh`. A test that changes the environment does it in
   a subshell.
+
+### Output style
+
+The CLI's output is quiet: plain text, with a few colours that each mean one thing, so a
+reader learns them once. It follows [Homebrew](https://brew.sh)'s steps and the
+[Command Line Interface Guidelines](https://clig.dev).
+
+**Styles.** Text is styled only through `out <style> <text>` (stdout) and `err <style> <text>`
+(stderr), never with escape codes of its own. There are seven styles, and each has one job:
+
+| Style | Looks | For |
+|---|---|---|
+| `step` | bold blue | The `==>` of a step |
+| `bold` | bold | A step's text, a heading (`Usage:`, `Options:`), the name of what a command made |
+| `dim` | dim | Detail the reader can skip: an unchanged version, the version before a change, a release notes link |
+| `good` | green | What succeeded or is new: a new version, doctor's `✓` |
+| `warn` | bold yellow | Something worth a look: a note's heading, doctor's `–` |
+| `bad` | bold red | What failed: `create:` before an error, doctor's `✗`, `<n> problems found.` |
+| `command` | cyan | A command, wherever output or help writes one: `create upgrade`, `'create run gpu'` |
+
+**When there is colour.** Each stream decides for itself: colour on a terminal, never with
+`NO_COLOR` set, and always with `FORCE_COLOR` set (not `0`) unless `NO_COLOR` is too. Help
+printed to stderr after a wrong command follows stderr's choice.
+
+**Symbols.** `==>` starts a step and `->` joins an old version to a new one. `create doctor`
+marks a line `✓`, `–` or `✗`, or `ok`, `--` and `!!` where the locale is not UTF-8. Nothing
+else: no emoji, spinners, boxes or progress bars.
+
+**The shapes output takes:**
+
+- **A step** is `==> <Verb>ing <what>`, such as `==> Updating project 'demo'`, one before each
+  phase that waits on pixi or Mojo. A name in it is in single quotes.
+- **A result** is indented two spaces under its step, such as `  create 0.2.0 -> 0.3.0`, or is
+  one line of its own after it, such as `Built <path>`.
+- **A note** is a blank line, a heading ending in `:` in `warn`, its items indented two spaces,
+  a blank line, then plain sentences, ending with a hint.
+- **A command** in text is in single quotes inside a sentence (`see 'create update --help'`),
+  and bare after a colon that ends a hint (`To upgrade anyway, use: create upgrade`). The
+  quotes stay unstyled, so the text reads the same without colour.
+- **An error** is one line, `create: <what went wrong>`, starting lowercase, then `; ` and what
+  to do about it when there is something: `unknown option '--x'; see 'create update --help'`.
+
+**Words.** Plurals follow the count (`1 problem found.`, `2 problems found.`); nothing writes
+`problem(s)`. The CLI calls itself `create` in errors, as the command typed, and `create-cli`
+only where it names the package (`--version`, `pixi global update create-cli`).
