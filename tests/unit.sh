@@ -110,7 +110,8 @@ cmp -s demo/assets/logo.png "$logo" || fail "new: no assets/logo.png"
 logged '[--channel][https://conda.modular.com/max]' "new"
 logged '[--platform][linux-64][--platform][osx-arm64]' "new"
 logged '[add][--manifest-path][demo/pixi.toml][mojo][create>=' "new"
-says "cd demo" "new"
+says "Creating new project 'demo'" "new"
+says "Adding the Mojo and Create pixi packages" "new"
 case $out in *"stub: added"*) fail "new: pixi's output is shown without --verbose" ;; esac
 case $out in *"$(printf '\033')"*) fail "new: colour when not on a terminal" ;; esac
 
@@ -146,7 +147,6 @@ fresh new-quoting
 run new 'my "odd\ project'; ok "new with quotes, a backslash and a space"
 grep -qF 'run[MyApp]("my \"odd\\ project")' "my \"odd\\ project/main.mojo" \
     || fail "quotes are not escaped in main.mojo: $(grep 'run\[' "my \"odd\\ project/main.mojo")"
-says "cd 'my \"odd\\ project'" "the cd hint is not quoted"
 
 fresh new-empty-dir
 mkdir empty
@@ -157,7 +157,6 @@ mkdir here && cd here
 run new .; ok "new ."
 [ -f main.mojo ] || fail "new .: no main.mojo"
 grep -qF 'run[MyApp]("here")' main.mojo || fail "new .: the title is not the directory's name"
-case $out in *"cd "*) fail "new .: says to cd" ;; esac
 [ -f assets/logo.png ] || fail "new .: no assets/logo.png"
 
 fresh new-symlink

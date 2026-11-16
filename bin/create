@@ -186,14 +186,6 @@ require_platform() {
         || die "Create runs on Linux (x86-64) and macOS (Apple silicon), not on $(uname -s) $(uname -m)"
 }
 
-# Single quotes <text> for a shell when it needs them.
-shell_quote() {
-    case $1 in
-        *[!A-Za-z0-9_./+-]* | '') printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")" ;;
-        *) printf '%s' "$1" ;;
-    esac
-}
-
 # <text> as the inside of a Mojo string literal.
 mojo_string() {
     printf '%s' "$1" | sed 's/[\\"]/\\&/g'
@@ -306,10 +298,10 @@ cmd_new() {
     trap undo_new EXIT
     trap 'exit 130' INT TERM
 
-    step "Making $title"
+    step "Creating new project '$title'"
     quietly pixi init "$@" -- "$path" \
         || die "could not make the project: pixi init failed"
-    step "Adding Mojo and Create (the first time, this downloads Mojo and can take a few minutes)"
+    step "Adding the Mojo and Create pixi packages (the first time, this downloads Mojo and can take a few minutes)"
     quietly pixi add --manifest-path "$path/pixi.toml" mojo "$CREATE_SPEC" \
         || die "could not add mojo and create: pixi add failed"
     main_mojo "$(mojo_string "$title")" >"$path/main.mojo"
@@ -319,10 +311,6 @@ cmd_new() {
 
     trap - EXIT INT TERM
     rm -f "$log"
-
-    printf '\nMade %s. To run it:\n\n' "$title"
-    [ "$path" = . ] || printf '  cd %s\n' "$(shell_quote "$path")"
-    printf '  create run      (or create watch, to rerun it on every save)\n\n'
 }
 
 # The nearest directory at or above the current one with a pixi.toml and a
@@ -342,7 +330,7 @@ project_root() {
 
 require_project() {
     project_root \
-        || die "not in a Create project: no pixi.toml with a main.mojo here or above"
+        || die "not in a Create project: no pixi.toml with a main.mojo detected"
 }
 
 # "name version" lines for the project's mojo and create, from its lock file;
