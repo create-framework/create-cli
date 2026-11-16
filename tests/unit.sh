@@ -10,6 +10,8 @@
 set -eu
 
 create="$(cd "$(dirname "$0")/.." && pwd)/bin/create"
+nl='
+'
 logo="$(dirname "$create")/../share/create-cli/template/assets/logo.png"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -116,7 +118,7 @@ chmod +x "$work/freebsd/uname"
 PATH="$work/bin:$PATH"
 STUB_LOG="$work/log"
 export PATH STUB_LOG
-unset STUB_FAIL NO_COLOR
+unset STUB_FAIL STUB_NEWER_MOJO NO_COLOR FORCE_COLOR
 
 # Failures are counted in a file, so ones in subshells count too.
 fail() {
@@ -304,7 +306,7 @@ mkdir demo/src
     says "mojo 1.1.0 (unchanged)" "update"
     says "create 0.2.0 (release notes: https://github.com/create-framework/create/releases/tag/v0.2.0)" "update's note of a newer create"
     says "New package version available:" "update's note of a newer create"
-    says "It is outside the versions pixi.toml allows." "update's note of a newer create"
+    says "releases/tag/v0.2.0)$nl${nl}It is outside the versions pixi.toml allows." "update's note of a newer create"
     says "See its release notes for any breaking changes." "update's note of a newer create"
     says "To upgrade anyway, use: create upgrade" "update's note of a newer create"
     if printf '%s\n' "$out" | grep -q '^  mojo .*release notes'; then
@@ -363,6 +365,32 @@ run doctor; ok "doctor outside a project"; says "not in a project" "doctor outsi
     && says "create-cli dev" "doctor")
 (PATH="$work/freebsd:$PATH"; run doctor; fails "doctor on FreeBSD"; says "1 problem found." "doctor on FreeBSD")
 run doctor extra; fails "doctor with an argument"; says "unexpected argument 'extra'; see 'create doctor --help'" "doctor with an argument"
+
+# --- the output style
+
+esc=$(printf '\033')
+fresh style
+"$create" new demo >/dev/null
+: >"$STUB_LOG"
+(cd demo && export FORCE_COLOR=1 && run update
+    ok "update with FORCE_COLOR"
+    says "${esc}[1;34m==>${esc}[0m ${esc}[1mUpdating project 'demo'${esc}[0m" "a step's style"
+    says "${esc}[2mmojo 1.1.0 (unchanged)${esc}[0m" "an unchanged version's style"
+    says "${esc}[2m0.1.1 ->${esc}[0m ${esc}[32m0.1.2${esc}[0m" "a changed version's style"
+    says "${esc}[1;33mNew package version available:${esc}[0m" "a note heading's style"
+    says "use: ${esc}[36mcreate upgrade${esc}[0m" "a hint's style")
+rm -f "$work/updated"
+(cd demo && export FORCE_COLOR=1 && run update --frobnicate
+    says "${esc}[1;31mcreate:${esc}[0m unknown option '--frobnicate'; see '${esc}[36mcreate update --help${esc}[0m'" "an error's style")
+(cd demo && export FORCE_COLOR=1 NO_COLOR=1 && run update
+    case $out in *"$esc"*) fail "colour with NO_COLOR and FORCE_COLOR set: $out" ;; esac)
+rm -f "$work/updated"
+(cd demo && export FORCE_COLOR=0 && run doctor
+    case $out in *"$esc"*) fail "colour with FORCE_COLOR=0: $out" ;; esac)
+(export FORCE_COLOR=1 && run bogus
+    says "${esc}[1mUsage:${esc}[0m" "help after an unknown command, coloured as stderr")
+(cd demo && export LC_ALL=C.UTF-8 && run doctor && says "✓ platform" "doctor's marks in UTF-8")
+(cd demo && export LC_ALL=C && run doctor && says "ok platform" "doctor's marks without UTF-8")
 
 if [ -s "$work/failures" ]; then
     printf '%s failure(s)\n' "$(wc -l <"$work/failures" | tr -d ' ')" >&2

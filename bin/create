@@ -43,66 +43,85 @@ TEMPLATE="$(cd "$(dirname "$script")/.." && pwd -P)/share/create-cli/template"
 nl='
 '
 
-# Colour only on a terminal, and never with NO_COLOR set (https://no-color.org).
+# The output style is in CONTRIBUTING.md. Each stream is coloured on a
+# terminal, never with NO_COLOR set (https://no-color.org), and always with
+# FORCE_COLOR set unless NO_COLOR is too.
 color_out=
 color_err=
 if [ -z "${NO_COLOR:-}" ]; then
-    if [ -t 1 ]; then color_out=1; fi
-    if [ -t 2 ]; then color_err=1; fi
+    case ${FORCE_COLOR:-} in '' | 0) force_color= ;; *) force_color=1 ;; esac
+    if [ -n "$force_color" ] || [ -t 1 ]; then color_out=1; fi
+    if [ -n "$force_color" ] || [ -t 2 ]; then color_err=1; fi
 fi
 
-# paint <on> <sgr> <text>
+# paint <on> <style> <text>: <text> in one of the output style's styles, if
+# <on>; out and err decide <on> for their stream.
 paint() {
-    if [ -n "$1" ]; then
-        printf '\033[%sm%s\033[0m' "$2" "$3"
-    else
+    if [ -z "$1" ]; then
         printf '%s' "$3"
+        return
     fi
+    case $2 in
+        step) sgr='1;34' ;;
+        bold) sgr=1 ;;
+        dim) sgr=2 ;;
+        good) sgr=32 ;;
+        warn) sgr='1;33' ;;
+        bad) sgr='1;31' ;;
+        command) sgr=36 ;;
+    esac
+    printf '\033[%sm%s\033[0m' "$sgr" "$3"
 }
 
+out() { paint "$color_out" "$1" "$2"; }
+err() { paint "$color_err" "$1" "$2"; }
+
+# Doctor's marks, where the locale can show them.
+case ${LC_ALL:-${LC_CTYPE:-${LANG:-}}} in
+    *UTF-8* | *utf-8* | *UTF8* | *utf8*) mark_good='✓' mark_note='–' mark_bad='✗' ;;
+    *) mark_good='ok' mark_note='--' mark_bad='!!' ;;
+esac
+
 die() {
-    printf '%s %s\n' "$(paint "$color_err" '1;31' 'create:')" "$1" >&2
+    printf '%s %s\n' "$(err bad 'create:')" "$1" >&2
     exit 1
 }
 
 step() {
-    printf '%s %s\n' "$(paint "$color_out" '1;32' '==>')" "$1"
+    printf '%s %s\n' "$(out step '==>')" "$(out bold "$1")"
 }
 
 usage() {
-    cat <<EOF
-create-cli $VERSION: start and run Create projects
-
-Usage:
-  create new <path>        Create a new project at <path> with mojo, create and a main.mojo
-  create run [args...]     Run the project's main.mojo, passing args to the program
-  create watch [args...]   Run main.mojo, and run it again whenever a .mojo file is saved
-  create build [options]   Build main.mojo into an optimised program in build/
-  create update            Update Mojo and Create within the versions the project allows
-  create upgrade           Upgrade Mojo and Create beyond the versions the project allows
-  create doctor            Check pixi, this machine and the project for problems
-  create --version         Print the version
-  create --help            Print this help
-
-Run 'create <command> --help' for details.
-
-The user guide: $GUIDE
-To update the CLI itself: pixi global update create-cli
-EOF
+    # A command in bold, padded to line up what it does.
+    line() { printf '  %s %s\n' "$(out bold "$(printf '%-24s' "$1")")" "$2"; }
+    printf 'create-cli %s: start and run Create projects\n\n' "$VERSION"
+    printf '%s\n' "$(out bold Usage:)"
+    line 'create new <path>' 'Create a new project at <path> with mojo, create and a main.mojo'
+    line 'create run [args...]' "Run the project's main.mojo, passing args to the program"
+    line 'create watch [args...]' 'Run main.mojo, and run it again whenever a .mojo file is saved'
+    line 'create build [options]' 'Build main.mojo into an optimised program in build/'
+    line 'create update' 'Update Mojo and Create within the versions the project allows'
+    line 'create upgrade' 'Upgrade Mojo and Create beyond the versions the project allows'
+    line 'create doctor' 'Check pixi, this machine and the project for problems'
+    line 'create --version' 'Print the version'
+    line 'create --help' 'Print this help'
+    printf "\nRun '%s' for details.\n\n" "$(out command 'create <command> --help')"
+    printf 'The user guide: %s\n' "$GUIDE"
+    printf 'To update the CLI itself: %s\n' "$(out command 'pixi global update create-cli')"
 }
 
 usage_new() {
     cat <<EOF
-Usage: create new [--verbose] <path>
+$(out bold Usage:) create new [--verbose] <path>
 
 Creates a new project at <path>, which must not exist or be an empty directory
-('create new .' creates one in the current directory). The project is a pixi
+('$(out command 'create new .')' creates one in the current directory). The project is a pixi
 project with the Modular, Create and conda-forge channels, for
 Linux (x86-64) and macOS (Apple silicon), with the mojo and create packages
 and a main.mojo to start from, which draws the Create logo from
 assets/logo.png. If a step fails, nothing is left behind.
 
-Options:
+$(out bold Options:)
   -v, --verbose   Show pixi's output
   -h, --help      Print this help
 EOF
@@ -110,50 +129,50 @@ EOF
 
 usage_run() {
     cat <<EOF
-Usage: create run [args...]
+$(out bold Usage:) create run [args...]
 
 Runs the project's main.mojo, from anywhere inside the project, passing args to
-the program: 'create run gpu' runs it on the GPU backend. The program runs in
+the program: '$(out command 'create run gpu')' runs it on the GPU backend. The program runs in
 the project's directory, so paths it opens are relative to the project.
 
-To pass --help to the program, put '--' first: create run -- --help
+To pass --help to the program, put '--' first: $(out command 'create run -- --help')
 EOF
 }
 
 usage_watch() {
     cat <<EOF
-Usage: create watch [args...]
+$(out bold Usage:) create watch [args...]
 
-Runs the project's main.mojo like 'create run', and restarts it whenever a
+Runs the project's main.mojo like '$(out command 'create run')', and restarts it whenever a
 .mojo file in the project is saved. Stop it with Ctrl-C. watchexec does the
 watching; pixi downloads it the first time.
 
-To pass --help to the program, put '--' first: create watch -- --help
+To pass --help to the program, put '--' first: $(out command 'create watch -- --help')
 EOF
 }
 
 usage_build() {
     cat <<EOF
-Usage: create build [mojo build options...]
+$(out bold Usage:) create build [mojo build options...]
 
 Builds the project's main.mojo into a program at build/<project name>, which
 runs without pixi or Mojo installed on the same platform. Options go to
-'mojo build': 'create build -o app' writes the program to ./app instead.
+'$(out command 'mojo build')': '$(out command 'create build -o app')' writes the program to ./app instead.
 EOF
 }
 
 usage_update() {
     cat <<EOF
-Usage: create update [--verbose]
+$(out bold Usage:) create update [--verbose]
 
 Updates the project's packages, like Mojo and Create, from anywhere inside the
 project, to the newest releases its pixi.toml allows, then shows how Mojo and
 Create changed. The allowed versions stay as they are, so an update never
 brings a Create release that could break the project's code. When a newer
-Mojo or Create is out than they allow, it says so; 'create upgrade' upgrades
+Mojo or Create is out than they allow, it says so; '$(out command 'create upgrade')' upgrades
 to it.
 
-Options:
+$(out bold Options:)
   -v, --verbose   Show pixi's output
   -h, --help      Print this help
 EOF
@@ -161,16 +180,16 @@ EOF
 
 usage_upgrade() {
     cat <<EOF
-Usage: create upgrade [--verbose]
+$(out bold Usage:) create upgrade [--verbose]
 
 Upgrades the project's Mojo and Create, from anywhere inside the project, to
 their newest releases, changing the versions its pixi.toml allows to match,
 then shows how they changed with each one's release notes. Such a release can
 change Create's API, so any of the project's code that uses it may need
-changes; 'create build' checks that the project still builds. Other packages
+changes; '$(out command 'create build')' checks that the project still builds. Other packages
 in pixi.toml are left as they are.
 
-Options:
+$(out bold Options:)
   -v, --verbose   Show pixi's output
   -h, --help      Print this help
 EOF
@@ -178,7 +197,7 @@ EOF
 
 usage_doctor() {
     cat <<EOF
-Usage: create doctor
+$(out bold Usage:) create doctor
 
 Checks that pixi is installed, that this machine can run Create, and, inside a
 project, which Mojo and Create it uses, then reports the display and GPU.
@@ -189,8 +208,8 @@ EOF
 # bad_argument <command> <argument>: dies naming what was wrong with it.
 bad_argument() {
     case $2 in
-        -*) die "unknown option '$2'; see 'create $1 --help'" ;;
-        *) die "unexpected argument '$2'; see 'create $1 --help'" ;;
+        -*) die "unknown option '$2'; see '$(err command "create $1 --help")'" ;;
+        *) die "unexpected argument '$2'; see '$(err command "create $1 --help")'" ;;
     esac
 }
 
@@ -383,13 +402,14 @@ show_changes() {
     package_versions "$1" | while read -r name version; do
         old=$(printf '%s\n' "$2" | awk -v name="$name" '$1 == name { print $2 }')
         if [ "$old" = "$version" ]; then
-            printf '  %s %s (unchanged)\n' "$name" "$version"
-        elif [ -n "${3-}" ]; then
-            printf '  %s %s -> %s (release notes: %s)\n' "$name" "${old:-none}" "$version" \
-                "$(release_notes "$name" "$version")"
-        else
-            printf '  %s %s -> %s\n' "$name" "${old:-none}" "$version"
+            printf '  %s\n' "$(out dim "$name $version (unchanged)")"
+            continue
         fi
+        printf '  %s %s %s' "$name" "$(out dim "${old:-none} ->")" "$(out good "$version")"
+        if [ -n "${3-}" ]; then
+            printf ' %s' "$(out dim "(release notes: $(release_notes "$name" "$version"))")"
+        fi
+        printf '\n'
     done
 }
 
@@ -466,7 +486,7 @@ cmd_build() {
     step "Building project '${root##*/}'"
     # Run from where we are, so a relative -o is relative to here.
     pixi run --manifest-path "$root/pixi.toml" mojo build "$root/main.mojo" "$@"
-    [ "$output" = given ] || printf 'Built %s\n' "$output"
+    [ "$output" = given ] || printf 'Built %s\n' "$(out bold "$output")"
 }
 
 cmd_update() {
@@ -500,14 +520,14 @@ cmd_update() {
         else
             versions='versions' it_is='They are' its='their'
         fi
-        printf '\nNew package %s available:\n' "$versions"
+        printf '\n%s\n' "$(out warn "New package $versions available:")"
         printf '%s\n' "$newer" | while read -r name version; do
-            printf '  %s %s (release notes: %s)\n' "$name" "$version" \
-                "$(release_notes "$name" "$version")"
+            printf '  %s %s %s\n' "$name" "$(out good "$version")" \
+                "$(out dim "(release notes: $(release_notes "$name" "$version"))")"
         done
-        printf '%s outside the versions pixi.toml allows.\n' "$it_is"
+        printf '\n%s outside the versions pixi.toml allows.\n' "$it_is"
         printf 'See %s release notes for any breaking changes.\n' "$its"
-        printf 'To upgrade anyway, use: create upgrade\n'
+        printf 'To upgrade anyway, use: %s\n' "$(out command 'create upgrade')"
     fi
 }
 
@@ -547,10 +567,10 @@ cmd_doctor() {
     [ $# -eq 0 ] || bad_argument doctor "$1"
 
     problems=0
-    good() { printf '  %s %-10s %s\n' "$(paint "$color_out" 32 ok)" "$1" "$2"; }
-    note() { printf '  %s %-10s %s\n' "$(paint "$color_out" 33 '--')" "$1" "$2"; }
+    good() { printf '  %s %-10s %s\n' "$(out good "$mark_good")" "$1" "$2"; }
+    note() { printf '  %s %-10s %s\n' "$(out warn "$mark_note")" "$1" "$2"; }
     bad() {
-        printf '  %s %-10s %s\n' "$(paint "$color_out" 31 '!!')" "$1" "$2"
+        printf '  %s %-10s %s\n' "$(out bad "$mark_bad")" "$1" "$2"
         problems=$((problems + 1))
     }
 
@@ -578,7 +598,7 @@ cmd_doctor() {
             if [ -n "$versions" ]; then
                 good packages "$versions"
             else
-                bad packages "mojo and create are not in the lock file: run 'pixi install' in $root"
+                bad packages "mojo and create are not in the lock file: run '$(out command 'pixi install')' in $root"
             fi
         fi
     else
@@ -610,15 +630,15 @@ cmd_doctor() {
 
     if [ "$problems" -gt 0 ]; then
         if [ "$problems" -eq 1 ]; then
-            printf '\n1 problem found.\n'
+            printf '\n%s\n' "$(out bad '1 problem found.')"
         else
-            printf '\n%s problems found.\n' "$problems"
+            printf '\n%s\n' "$(out bad "$problems problems found.")"
         fi
         exit 1
     fi
 }
 
-[ $# -gt 0 ] || { usage >&2; exit 1; }
+[ $# -gt 0 ] || { color_out=$color_err; usage >&2; exit 1; }
 command=$1
 shift
 case $command in
@@ -631,5 +651,10 @@ case $command in
     doctor) cmd_doctor "$@" ;;
     -V | --version | version) printf 'create-cli %s\n' "$VERSION" ;;
     -h | --help | help) usage ;;
-    *) printf 'create: unknown command %s\n\n' "'$command'" >&2; usage >&2; exit 1 ;;
+    *)
+        printf "%s unknown command '%s'\n\n" "$(err bad 'create:')" "$command" >&2
+        color_out=$color_err
+        usage >&2
+        exit 1
+        ;;
 esac
