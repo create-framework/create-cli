@@ -320,7 +320,7 @@ cmd_new() {
     step "Creating new project '$title'"
     quietly pixi init "$@" -- "$path" \
         || die "could not make the project: pixi init failed"
-    step "Adding the Mojo and Create pixi packages (the first time, this downloads Mojo and can take a few minutes)"
+    step "Adding the Mojo and Create pixi packages"
     quietly pixi add --manifest-path "$path/pixi.toml" mojo "$CREATE_SPEC" \
         || die "could not add mojo and create: pixi add failed"
     main_mojo "$(mojo_string "$title")" >"$path/main.mojo"
