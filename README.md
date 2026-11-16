@@ -24,6 +24,7 @@ create run                # runs main.mojo
 create watch              # runs main.mojo, and again whenever a .mojo file is saved
 create build              # builds an optimised program into build/my-project
 create update             # updates Mojo and Create within the versions the project allows
+create upgrade            # moves Mojo and Create to their newest releases, beyond those versions
 create doctor             # checks pixi, this machine and the project for problems
 ```
 
@@ -42,8 +43,12 @@ create doctor             # checks pixi, this machine and the project for proble
   `mojo build`, so `create build -o app` writes `./app` instead.
 - `create update` runs `pixi update` from anywhere in the project, then shows how Mojo and
   Create changed. It stays within the versions `pixi.toml` allows, so it never brings a Create
-  release that could break `main.mojo`; to move to one, change `create`'s version in
-  `pixi.toml` and follow Create's release notes.
+  release that could break the project's code; `create upgrade` moves to one.
+- `create upgrade` runs `pixi upgrade mojo create` from anywhere in the project: it moves Mojo
+  and Create to their newest releases and changes the versions `pixi.toml` allows to match,
+  then shows how they changed, each with a link to its release notes. Such a release can
+  change Create's API, so any of the project's code that uses it may need changes;
+  `create build` checks that the project still builds. Other packages in `pixi.toml` are left as they are.
 - `create doctor` reports the versions of the CLI, pixi, Mojo and Create, whether this machine
   is supported, and the display and GPU it would use.
 

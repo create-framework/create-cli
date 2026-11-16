@@ -4,8 +4,8 @@
 # `create update` and checks it with `create doctor`. Needs the network; the program itself is not run (no
 # display).
 #
-# With --latest, the project is moved to the newest Create before building, so
-# CI finds out when a Create release breaks the main.mojo template and
+# With --latest, `create upgrade` moves the project to the newest Create before
+# building, so CI finds out when a Create release breaks the main.mojo template and
 # CREATE_SPEC in bin/create needs updating with it.
 set -eu
 
@@ -32,7 +32,7 @@ fail() {
 [ -f demo/assets/logo.png ] || fail "no assets/logo.png"
 
 if [ -n "$latest" ]; then
-    pixi add --manifest-path demo/pixi.toml create || fail "moving to the newest create"
+    (cd demo && "$create" upgrade) || fail "create upgrade"
 fi
 
 mkdir demo/src
