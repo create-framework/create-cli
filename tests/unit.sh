@@ -280,7 +280,8 @@ fresh build
 "$create" new demo >/dev/null
 mkdir demo/src
 : >"$STUB_LOG"
-(cd demo/src && run build && ok "build" && says "Built $dir/demo/build/demo" "build")
+(cd demo/src && run build && ok "build" && says "Building project 'demo'" "build" \
+    && says "Built $dir/demo/build/demo" "build")
 logged "[run][--manifest-path][$dir/demo/pixi.toml][mojo][build][$dir/demo/main.mojo][-o][$dir/demo/build/demo]" "build"
 logged "cwd=$dir/demo/src" "build does not stay in the current directory"
 [ -d demo/build ] || fail "build: no build directory"
@@ -298,6 +299,7 @@ mkdir demo/src
 : >"$STUB_LOG"
 (cd demo/src && run update
     ok "update"
+    says "Updating project 'demo'" "update"
     says "create 0.1.1 -> 0.1.2" "update"
     says "mojo 1.1.0 (unchanged)" "update"
     says "create 0.2.0 (release notes: https://github.com/create-framework/create/releases/tag/v0.2.0)" "update's note of a newer create"
@@ -335,7 +337,7 @@ fresh upgrade
 "$create" new demo >/dev/null
 mkdir demo/src
 : >"$STUB_LOG"
-(cd demo/src && run upgrade && ok "upgrade" \
+(cd demo/src && run upgrade && ok "upgrade" && says "Upgrading project 'demo'" "upgrade" \
     && says "create 0.1.1 -> 0.2.0 (release notes: https://github.com/create-framework/create/releases/tag/v0.2.0)" "upgrade" \
     && says "mojo 1.1.0 (unchanged)" "upgrade" && says "See the release notes for any breaking changes" "upgrade")
 logged "[upgrade][--manifest-path][$dir/demo/pixi.toml][mojo][create]" "upgrade"
