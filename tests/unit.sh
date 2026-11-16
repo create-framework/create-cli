@@ -66,6 +66,23 @@ case $1 in
           "type": "conda",
           "explicit": true
         }
+JSON
+                    if [ -n "${STUB_NEWER_MOJO-}" ]; then
+                        cat <<'JSON'
+        ,{
+          "name": "mojo",
+          "before": {
+            "conda": "https://conda.modular.com/max/linux-64/mojo-1.1.0-release.conda"
+          },
+          "after": {
+            "conda": "https://conda.modular.com/max/linux-64/mojo-1.3.0-release.conda"
+          },
+          "type": "conda",
+          "explicit": true
+        }
+JSON
+                    fi
+                    cat <<'JSON'
       ]
     }
   }
@@ -284,12 +301,22 @@ mkdir demo/src
     says "create 0.1.1 -> 0.1.2" "update"
     says "mojo 1.1.0 (unchanged)" "update"
     says "create 0.2.0, https://github.com/create-framework/create/releases/tag/v0.2.0" "update's note of a newer create"
-    says "create upgrade" "update's note of a newer create"
+    says "New package version available:" "update's note of a newer create"
+    says "It is outside the versions pixi.toml allows" "update's note of a newer create"
+    says "To move to it anyway: create upgrade" "update's note of a newer create"
     if printf '%s\n' "$out" | grep -q '^  mojo .*, https'; then
         fail "update notes a newer mojo that is not out: $out"
     fi
     case $out in *"stub:"*) fail "update: pixi's output is shown without --verbose" ;; esac)
 logged "[update][--manifest-path][$dir/demo/pixi.toml]" "update"
+rm -f "$work/updated"
+(cd demo && export STUB_NEWER_MOJO=1 && run update
+    ok "update with a newer mojo and create"
+    says "New package versions available:" "update's note of a newer mojo and create"
+    says "  mojo 1.3.0, https://docs.modular.com/mojo/changelog/" "update's note of a newer mojo and create"
+    says "They are outside the versions pixi.toml allows" "update's note of a newer mojo and create"
+    says "code; their release notes" "update's note of a newer mojo and create"
+    says "To move to them anyway: create upgrade" "update's note of a newer mojo and create")
 rm -f "$work/updated"
 (cd demo && export STUB_FAIL=update && run update && fails "update when pixi update fails" \
     && says "stub: update failed" "update when pixi update fails")
@@ -311,7 +338,7 @@ logged "[upgrade][--manifest-path][$dir/demo/pixi.toml][mojo][create]" "upgrade"
 (cd demo && run upgrade && ok "upgrade when up to date" \
     && case $out in *"See the release notes"*) fail "upgrade with nothing to upgrade points to the release notes" ;; esac)
 (cd demo && run update && ok "update once upgraded" \
-    && case $out in *"Newer than"*) fail "update notes a newer release once upgraded: $out" ;; esac)
+    && case $out in *"New package"*) fail "update notes a newer release once upgraded: $out" ;; esac)
 rm -f "$work/upgraded" "$work/updated"
 (cd demo && export STUB_FAIL=upgrade && run upgrade && fails "upgrade when pixi upgrade fails" \
     && says "stub: upgrade failed" "upgrade when pixi upgrade fails")

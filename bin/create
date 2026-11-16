@@ -486,12 +486,18 @@ cmd_update() {
 
     newer=$(newer_versions "$root")
     if [ -n "$newer" ]; then
-        printf '\nNewer than pixi.toml allows:\n'
+        if [ "$(printf '%s\n' "$newer" | wc -l)" -eq 1 ]; then
+            versions='version' it='it' it_is='It is' its='its'
+        else
+            versions='versions' it='them' it_is='They are' its='their'
+        fi
+        printf '\nNew package %s available:\n' "$versions"
         printf '%s\n' "$newer" | while read -r name version; do
             printf '  %s %s, %s\n' "$name" "$version" "$(release_notes "$name" "$version")"
         done
-        printf "These can break the project's code; their release notes say what changed.\n"
-        printf 'To move to them anyway: create upgrade\n'
+        printf "%s outside the versions pixi.toml allows, and can break the project's\n" "$it_is"
+        printf 'code; %s release notes say what changed.\n' "$its"
+        printf 'To move to %s anyway: create upgrade\n' "$it"
     fi
 }
 
