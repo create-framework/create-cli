@@ -79,6 +79,7 @@ Usage:
   create watch [args...]   Run main.mojo, and run it again whenever a .mojo file is saved
   create build [options]   Build main.mojo into an optimised program in build/
   create update            Update Mojo and Create within the versions the project allows
+  create upgrade           Move Mojo and Create to their newest releases, beyond those versions
   create doctor            Check pixi, this machine and the project for problems
   create --version         Print the version
   create --help            Print this help
@@ -148,8 +149,25 @@ Usage: create update [--verbose]
 Updates the project's packages, like Mojo and Create, from anywhere inside the
 project, to the newest releases its pixi.toml allows, then shows how Mojo and
 Create changed. The allowed versions stay as they are, so an update never
-brings a Create release that could break main.mojo; to move to one, change
-create's version in pixi.toml and follow Create's release notes.
+brings a Create release that could break the project's code; 'create upgrade'
+moves to one.
+
+Options:
+  -v, --verbose   Show pixi's output
+  -h, --help      Print this help
+EOF
+}
+
+usage_upgrade() {
+    cat <<EOF
+Usage: create upgrade [--verbose]
+
+Moves the project's Mojo and Create, from anywhere inside the project, to their
+newest releases, changing the versions its pixi.toml allows to match, then
+shows how they changed with each one's release notes. Such a release can
+change Create's API, so any of the project's code that uses it may need
+changes; 'create build' checks that the project still builds. Other packages
+in pixi.toml are left as they are.
 
 Options:
   -v, --verbose   Show pixi's output
@@ -353,6 +371,31 @@ package_versions() {
         | awk '$1 == "mojo" || $1 == "create" { print $1, $2 }'
 }
 
+# Where <name>'s release <version> says what changed.
+release_notes() {
+    case $1 in
+        create) printf 'https://github.com/create-framework/create/releases/tag/v%s\n' "$2" ;;
+        mojo) printf 'https://docs.modular.com/mojo/changelog/\n' ;;
+    esac
+}
+
+# show_changes <root> <before> [notes]: how the project's mojo and create
+# changed from <before>, package_versions' output earlier; with notes, each
+# changed one's release notes too.
+show_changes() {
+    package_versions "$1" | while read -r name version; do
+        old=$(printf '%s\n' "$2" | awk -v name="$name" '$1 == name { print $2 }')
+        if [ "$old" = "$version" ]; then
+            printf '  %s %s (unchanged)\n' "$name" "$version"
+        elif [ -n "${3-}" ]; then
+            printf '  %s %s -> %s, %s\n' "$name" "${old:-none}" "$version" \
+                "$(release_notes "$name" "$version")"
+        else
+            printf '  %s %s -> %s\n' "$name" "${old:-none}" "$version"
+        fi
+    done
+}
+
 # Skips a leading -h/--help (the command's own help) or -- (so the program
 # gets everything after it); sets $skip to how many arguments to drop.
 program_args() {
@@ -432,14 +475,36 @@ cmd_update() {
     quietly pixi update --manifest-path "$root/pixi.toml" \
         || die "could not update the project: pixi update failed"
 
-    package_versions "$root" | while read -r name version; do
-        old=$(printf '%s\n' "$before" | awk -v name="$name" '$1 == name { print $2 }')
-        if [ "$old" = "$version" ]; then
-            printf '  %s %s (unchanged)\n' "$name" "$version"
-        else
-            printf '  %s %s -> %s\n' "$name" "${old:-none}" "$version"
-        fi
+    show_changes "$root" "$before"
+}
+
+cmd_upgrade() {
+    verbose=
+    for arg; do
+        case $arg in
+            -h | --help) usage_upgrade; exit 0 ;;
+            -v | --verbose) verbose=1 ;;
+            *) die "usage: create upgrade [--verbose]" ;;
+        esac
     done
+    require_pixi
+    require_platform
+    root=$(require_project)
+
+    before=$(package_versions "$root")
+    log=$(mktemp)
+    trap 'rm -f "$log"' EXIT
+    trap 'exit 130' INT TERM
+
+    step "Upgrading ${root##*/}"
+    quietly pixi upgrade --manifest-path "$root/pixi.toml" mojo create \
+        || die "could not upgrade the project: pixi upgrade failed"
+
+    show_changes "$root" "$before" notes
+    if [ "$(package_versions "$root")" != "$before" ]; then
+        printf '\nSee the release notes for any breaking changes, which might require\n'
+        printf "updates to the project's code.\n"
+    fi
 }
 
 cmd_doctor() {
@@ -525,6 +590,7 @@ case $command in
     watch) cmd_watch "$@" ;;
     build) cmd_build "$@" ;;
     update) cmd_update "$@" ;;
+    upgrade) cmd_upgrade "$@" ;;
     doctor) cmd_doctor "$@" ;;
     -V | --version | version) printf 'create-cli %s\n' "$VERSION" ;;
     -h | --help | help) usage ;;

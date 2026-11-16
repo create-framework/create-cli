@@ -68,7 +68,7 @@ is used.
 | [bin/create](bin/create) | The CLI: one POSIX `sh` script, with a `cmd_<name>` and a `usage_<name>` per command |
 | [share/create-cli/template/](share/create-cli/template/) | The files `create new` copies into every project besides `main.mojo`, such as `assets/logo.png`; the package installs them at the same path beside `bin/` |
 | [tests/unit.sh](tests/unit.sh) | Offline tests: `bin/create` against a stub `pixi` that records how it is called |
-| [tests/e2e.sh](tests/e2e.sh) | End to end, against the real pixi: `create new`, then `build`, `update` and `doctor` |
+| [tests/e2e.sh](tests/e2e.sh) | End to end, against the real pixi: `create new`, then `build`, `update` and `doctor`; with `--latest`, `upgrade` first |
 | [recipe/recipe.yaml](recipe/recipe.yaml) | The `noarch` conda package; the build writes the release's version into the script |
 | [.github/workflows/](.github/workflows/) | CI (`ci.yml`) and the release (`release.yml`) |
 
@@ -126,7 +126,7 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 `<type>(<command>): <Summary>`, the summary in the imperative and capitalised.
 
 - The scope is the command the change is confined to (`new`, `run`, `watch`, `build`, `update`,
-  `doctor`); leave it out when a change spans several commands or touches none, such as the
+  `upgrade`, `doctor`); leave it out when a change spans several commands or touches none, such as the
   docs or CI.
 - The types: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build` (pixi, the recipe,
   dependencies), `ci`, `chore`.

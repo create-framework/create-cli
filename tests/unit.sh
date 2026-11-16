@@ -39,10 +39,13 @@ case $1 in
     add) echo "stub: added" ;;
     run | exec) printf 'cwd=%s\n' "$(pwd -P)" >>"$STUB_LOG" ;;
     update) : >"$(dirname "$STUB_LOG")/updated" ;;
+    upgrade) : >"$(dirname "$STUB_LOG")/upgraded" ;;
     list)
-        # create moves to 0.1.2 once the project is updated.
+        # create moves to 0.1.2 once the project is updated, and to 0.2.0
+        # once it is upgraded.
         create=0.1.1
         if [ -e "$(dirname "$STUB_LOG")/updated" ]; then create=0.1.2; fi
+        if [ -e "$(dirname "$STUB_LOG")/upgraded" ]; then create=0.2.0; fi
         printf 'Name    Version\ncreate  %s\nmojo    1.1.0\n' "$create"
         ;;
 esac
@@ -252,6 +255,25 @@ rm -f "$work/updated"
 (cd demo && run update extra && fails "update with an argument")
 run update; fails "update outside a project"
 rm -f "$work/updated"
+
+# --- upgrade
+
+fresh upgrade
+"$create" new demo >/dev/null
+mkdir demo/src
+: >"$STUB_LOG"
+(cd demo/src && run upgrade && ok "upgrade" \
+    && says "create 0.1.1 -> 0.2.0, https://github.com/create-framework/create/releases/tag/v0.2.0" "upgrade" \
+    && says "mojo 1.1.0 (unchanged)" "upgrade" && says "See the release notes for any breaking changes" "upgrade")
+logged "[upgrade][--manifest-path][$dir/demo/pixi.toml][mojo][create]" "upgrade"
+(cd demo && run upgrade && ok "upgrade when up to date" \
+    && case $out in *"See the release notes"*) fail "upgrade with nothing to upgrade points to the release notes" ;; esac)
+rm -f "$work/upgraded"
+(cd demo && export STUB_FAIL=upgrade && run upgrade && fails "upgrade when pixi upgrade fails" \
+    && says "stub: upgrade failed" "upgrade when pixi upgrade fails")
+(cd demo && run upgrade --help && ok "upgrade --help" && says "Usage: create upgrade" "upgrade --help")
+(cd demo && run upgrade extra && fails "upgrade with an argument")
+run upgrade; fails "upgrade outside a project"
 
 # --- doctor
 
