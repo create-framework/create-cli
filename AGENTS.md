@@ -18,9 +18,8 @@ These apply to every task and are imported below:
 ## When the task touches it
 
 - [RELEASING.md](RELEASING.md), only when asked to cut a release.
-- [Create's user guide](https://create-framework.org/guide/),
-  when changing the `main.mojo` template: it is Mojo written against the Create release
-  `CREATE_SPEC` pins.
+- [Create's CONTRIBUTING.md](https://github.com/create-framework/create/blob/main/CONTRIBUTING.md),
+  when changing the project template: it lives in Create's repository, not here.
 
 ## As an agent
 
@@ -29,5 +28,5 @@ These apply to every task and are imported below:
   why. If an idea is worse for other reasons, say so.
 - Leave merging to the user unless they ask for it.
 - Run `pixi run lint` and `pixi run test` for every change; add `pixi run e2e` (network, minutes)
-  only when the change reaches the real pixi or Create, such as the template or `CREATE_SPEC`.
+  only when the change reaches the real pixi or Create, such as `create new`.
 - Write POSIX `sh`, and check it with `shellcheck` rather than trusting what bash accepts.

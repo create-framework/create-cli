@@ -1,20 +1,9 @@
 #!/bin/sh
-# End to end, against the real pixi: makes a project with `create new` in a
-# temporary directory, builds it with `create build`, updates it with
-# `create update` and checks it with `create doctor`. Needs the network; the program itself is not run (no
-# display).
-#
-# With --latest, `create upgrade` moves the project to the newest Create before
-# building, so CI finds out when a Create release breaks the main.mojo template and
-# CREATE_SPEC in bin/create needs updating with it.
+# End to end, against the real pixi and the newest Create: makes a project with
+# `create new` in a temporary directory, builds it with `create build`, then
+# runs `create update`, `create upgrade` and `create doctor` on it. Needs the
+# network; the program itself is not run (no display).
 set -eu
-
-latest=
-case ${1-} in
-    --latest) latest=1 ;;
-    '') ;;
-    *) echo "usage: tests/e2e.sh [--latest]" >&2; exit 2 ;;
-esac
 
 create="$(cd "$(dirname "$0")/.." && pwd)/bin/create"
 work=$(mktemp -d)
@@ -30,16 +19,14 @@ fail() {
 [ -f demo/pixi.toml ] || fail "no pixi.toml"
 [ -f demo/main.mojo ] || fail "no main.mojo"
 [ -f demo/assets/logo.png ] || fail "no assets/logo.png"
-
-if [ -n "$latest" ]; then
-    (cd demo && "$create" upgrade) || fail "create upgrade"
-fi
+grep -qF 'run[MyApp]("demo")' demo/main.mojo || fail "main.mojo does not have the project's name"
 
 mkdir demo/src
 (cd demo/src && "$create" build) || fail "main.mojo does not build"
 [ -x demo/build/demo ] || fail "create build made no demo/build/demo"
 
 (cd demo && "$create" update) || fail "create update"
+(cd demo && "$create" upgrade) || fail "create upgrade"
 (cd demo && "$create" doctor) || fail "create doctor found problems"
 
 echo "ok"
