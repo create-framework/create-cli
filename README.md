@@ -18,17 +18,17 @@ pixi global install create-cli --channel https://prefix.dev/create-framework/cre
 ## Usage
 
 ```sh
-create new my-project     # a pixi project with mojo, create and a main.mojo
+create new my-project     # creates a new pixi project with mojo, create and a main.mojo
 cd my-project
 create run                # runs main.mojo
 create watch              # runs main.mojo, and again whenever a .mojo file is saved
 create build              # builds an optimised program into build/my-project
 create update             # updates Mojo and Create within the versions the project allows
-create upgrade            # upgrades Mojo and Create to their newest releases, beyond those versions
+create upgrade            # upgrades Mojo and Create beyond the versions the project allows
 create doctor             # checks pixi, this machine and the project for problems
 ```
 
-- `create new <path>` makes a project with the Modular, Create and conda-forge channels, for
+- `create new <path>` creates a new project with the Modular, Create and conda-forge channels, for
   Linux (x86-64) and macOS (Apple silicon), adds the `mojo` and `create` packages and writes a
   `main.mojo` to start from, which draws the Create logo from `assets/logo.png`. `<path>` may be an empty directory, so `create new .` sets up the
   current one. If a step fails, nothing is left behind. `--verbose` shows pixi's output.

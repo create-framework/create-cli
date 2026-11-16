@@ -300,11 +300,12 @@ mkdir demo/src
     ok "update"
     says "create 0.1.1 -> 0.1.2" "update"
     says "mojo 1.1.0 (unchanged)" "update"
-    says "create 0.2.0, https://github.com/create-framework/create/releases/tag/v0.2.0" "update's note of a newer create"
+    says "create 0.2.0 (release notes: https://github.com/create-framework/create/releases/tag/v0.2.0)" "update's note of a newer create"
     says "New package version available:" "update's note of a newer create"
-    says "It is outside the versions pixi.toml allows" "update's note of a newer create"
+    says "It is outside the versions pixi.toml allows." "update's note of a newer create"
+    says "See its release notes for any breaking changes." "update's note of a newer create"
     says "To upgrade anyway, use: create upgrade" "update's note of a newer create"
-    if printf '%s\n' "$out" | grep -q '^  mojo .*, https'; then
+    if printf '%s\n' "$out" | grep -q '^  mojo .*release notes'; then
         fail "update notes a newer mojo that is not out: $out"
     fi
     case $out in *"stub:"*) fail "update: pixi's output is shown without --verbose" ;; esac)
@@ -313,15 +314,18 @@ rm -f "$work/updated"
 (cd demo && export STUB_NEWER_MOJO=1 && run update
     ok "update with a newer mojo and create"
     says "New package versions available:" "update's note of a newer mojo and create"
-    says "  mojo 1.3.0, https://docs.modular.com/mojo/changelog/" "update's note of a newer mojo and create"
+    says "  mojo 1.3.0 (release notes: https://docs.modular.com/mojo/changelog/)" "update's note of a newer mojo and create"
     says "They are outside the versions pixi.toml allows" "update's note of a newer mojo and create"
-    says "code; their release notes" "update's note of a newer mojo and create"
+    says "See their release notes for any breaking changes." "update's note of a newer mojo and create"
     says "To upgrade anyway, use: create upgrade" "update's note of a newer mojo and create")
 rm -f "$work/updated"
 (cd demo && export STUB_FAIL=update && run update && fails "update when pixi update fails" \
     && says "stub: update failed" "update when pixi update fails")
 (cd demo && run update --help && ok "update --help" && says "Usage: create update" "update --help")
-(cd demo && run update extra && fails "update with an argument")
+(cd demo && run update extra && fails "update with an argument" \
+    && says "unexpected argument 'extra'; see 'create update --help'" "update with an argument")
+(cd demo && run update --frobnicate && fails "update with an unknown option" \
+    && says "unknown option '--frobnicate'; see 'create update --help'" "update with an unknown option")
 run update; fails "update outside a project"
 rm -f "$work/updated"
 
@@ -332,7 +336,7 @@ fresh upgrade
 mkdir demo/src
 : >"$STUB_LOG"
 (cd demo/src && run upgrade && ok "upgrade" \
-    && says "create 0.1.1 -> 0.2.0, https://github.com/create-framework/create/releases/tag/v0.2.0" "upgrade" \
+    && says "create 0.1.1 -> 0.2.0 (release notes: https://github.com/create-framework/create/releases/tag/v0.2.0)" "upgrade" \
     && says "mojo 1.1.0 (unchanged)" "upgrade" && says "See the release notes for any breaking changes" "upgrade")
 logged "[upgrade][--manifest-path][$dir/demo/pixi.toml][mojo][create]" "upgrade"
 (cd demo && run upgrade && ok "upgrade when up to date" \
@@ -343,6 +347,8 @@ rm -f "$work/upgraded" "$work/updated"
 (cd demo && export STUB_FAIL=upgrade && run upgrade && fails "upgrade when pixi upgrade fails" \
     && says "stub: upgrade failed" "upgrade when pixi upgrade fails")
 (cd demo && run upgrade --help && ok "upgrade --help" && says "Usage: create upgrade" "upgrade --help")
+(cd demo && run upgrade --frobnicate && fails "upgrade with an unknown option" \
+    && says "unknown option '--frobnicate'; see 'create upgrade --help'" "upgrade with an unknown option")
 (cd demo && run upgrade extra && fails "upgrade with an argument")
 run upgrade; fails "upgrade outside a project"
 
@@ -353,8 +359,8 @@ fresh doctor
 run doctor; ok "doctor outside a project"; says "not in a project" "doctor outside a project"
 (cd demo && run doctor && ok "doctor" && says "create 0.1.1, mojo 1.1.0" "doctor" \
     && says "create-cli dev" "doctor")
-(PATH="$work/freebsd:$PATH"; run doctor; fails "doctor on FreeBSD"; says "1 problem" "doctor on FreeBSD")
-run doctor extra; fails "doctor with an argument"
+(PATH="$work/freebsd:$PATH"; run doctor; fails "doctor on FreeBSD"; says "1 problem found." "doctor on FreeBSD")
+run doctor extra; fails "doctor with an argument"; says "unexpected argument 'extra'; see 'create doctor --help'" "doctor with an argument"
 
 if [ -s "$work/failures" ]; then
     printf '%s failure(s)\n' "$(wc -l <"$work/failures" | tr -d ' ')" >&2
