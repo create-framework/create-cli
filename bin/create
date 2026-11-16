@@ -74,20 +74,20 @@ usage() {
 create-cli $VERSION: start and run Create projects
 
 Usage:
-  create new <path>        Make a project at <path> with mojo, create and a main.mojo
+  create new <path>        Create a new project at <path> with mojo, create and a main.mojo
   create run [args...]     Run the project's main.mojo, passing args to the program
   create watch [args...]   Run main.mojo, and run it again whenever a .mojo file is saved
   create build [options]   Build main.mojo into an optimised program in build/
   create update            Update Mojo and Create within the versions the project allows
-  create upgrade           Upgrade Mojo and Create to their newest releases, beyond those versions
+  create upgrade           Upgrade Mojo and Create beyond the versions the project allows
   create doctor            Check pixi, this machine and the project for problems
   create --version         Print the version
   create --help            Print this help
 
-'create <command> --help' tells more about a command.
+Run 'create <command> --help' for details.
 
 The user guide: $GUIDE
-To update: pixi global update create-cli
+To update the CLI itself: pixi global update create-cli
 EOF
 }
 
@@ -95,8 +95,8 @@ usage_new() {
     cat <<EOF
 Usage: create new [--verbose] <path>
 
-Makes a project at <path>, which must not exist or be an empty directory
-('create new .' makes one in the current directory). The project is a pixi
+Creates a new project at <path>, which must not exist or be an empty directory
+('create new .' creates one in the current directory). The project is a pixi
 project with the Modular, Create and conda-forge channels, for
 Linux (x86-64) and macOS (Apple silicon), with the mojo and create packages
 and a main.mojo to start from, which draws the Create logo from
@@ -184,6 +184,14 @@ Checks that pixi is installed, that this machine can run Create, and, inside a
 project, which Mojo and Create it uses, then reports the display and GPU.
 Exits with an error if something would stop Create from working.
 EOF
+}
+
+# bad_argument <command> <argument>: dies naming what was wrong with it.
+bad_argument() {
+    case $2 in
+        -*) die "unknown option '$2'; see 'create $1 --help'" ;;
+        *) die "unexpected argument '$2'; see 'create $1 --help'" ;;
+    esac
 }
 
 require_pixi() {
@@ -275,7 +283,7 @@ cmd_new() {
                 -h | --help) usage_new; exit 0 ;;
                 -v | --verbose) verbose=1; continue ;;
                 --) options=; continue ;;
-                -*) die "unknown option '$arg'; see 'create new --help'" ;;
+                -*) bad_argument new "$arg" ;;
             esac
         fi
         path=$arg
@@ -319,10 +327,10 @@ cmd_new() {
 
     step "Creating new project '$title'"
     quietly pixi init "$@" -- "$path" \
-        || die "could not make the project: pixi init failed"
+        || die "could not create the project: pixi init failed"
     step "Adding the Mojo and Create pixi packages"
     quietly pixi add --manifest-path "$path/pixi.toml" mojo "$CREATE_SPEC" \
-        || die "could not add mojo and create: pixi add failed"
+        || die "could not add the Mojo and Create packages: pixi add failed"
     main_mojo "$(mojo_string "$title")" >"$path/main.mojo"
     cp -R -- "$TEMPLATE/." "$path" \
         || die "could not copy the template's files from $TEMPLATE"
@@ -377,7 +385,7 @@ show_changes() {
         if [ "$old" = "$version" ]; then
             printf '  %s %s (unchanged)\n' "$name" "$version"
         elif [ -n "${3-}" ]; then
-            printf '  %s %s -> %s, %s\n' "$name" "${old:-none}" "$version" \
+            printf '  %s %s -> %s (release notes: %s)\n' "$name" "${old:-none}" "$version" \
                 "$(release_notes "$name" "$version")"
         else
             printf '  %s %s -> %s\n' "$name" "${old:-none}" "$version"
@@ -466,7 +474,7 @@ cmd_update() {
         case $arg in
             -h | --help) usage_update; exit 0 ;;
             -v | --verbose) verbose=1 ;;
-            *) die "usage: create update [--verbose]" ;;
+            *) bad_argument update "$arg" ;;
         esac
     done
     require_pixi
@@ -493,10 +501,11 @@ cmd_update() {
         fi
         printf '\nNew package %s available:\n' "$versions"
         printf '%s\n' "$newer" | while read -r name version; do
-            printf '  %s %s, %s\n' "$name" "$version" "$(release_notes "$name" "$version")"
+            printf '  %s %s (release notes: %s)\n' "$name" "$version" \
+                "$(release_notes "$name" "$version")"
         done
-        printf "%s outside the versions pixi.toml allows, and can break the project's\n" "$it_is"
-        printf 'code; %s release notes say what changed.\n' "$its"
+        printf '%s outside the versions pixi.toml allows.\n' "$it_is"
+        printf 'See %s release notes for any breaking changes.\n' "$its"
         printf 'To upgrade anyway, use: create upgrade\n'
     fi
 }
@@ -507,7 +516,7 @@ cmd_upgrade() {
         case $arg in
             -h | --help) usage_upgrade; exit 0 ;;
             -v | --verbose) verbose=1 ;;
-            *) die "usage: create upgrade [--verbose]" ;;
+            *) bad_argument upgrade "$arg" ;;
         esac
     done
     require_pixi
@@ -534,7 +543,7 @@ cmd_doctor() {
     case ${1-} in
         -h | --help) usage_doctor; exit 0 ;;
     esac
-    [ $# -eq 0 ] || die "usage: create doctor"
+    [ $# -eq 0 ] || bad_argument doctor "$1"
 
     problems=0
     good() { printf '  %s %-10s %s\n' "$(paint "$color_out" 32 ok)" "$1" "$2"; }
@@ -599,7 +608,11 @@ cmd_doctor() {
     esac
 
     if [ "$problems" -gt 0 ]; then
-        printf '\n%s problem(s) found.\n' "$problems"
+        if [ "$problems" -eq 1 ]; then
+            printf '\n1 problem found.\n'
+        else
+            printf '\n%s problems found.\n' "$problems"
+        fi
         exit 1
     fi
 }
