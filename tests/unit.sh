@@ -303,7 +303,7 @@ mkdir demo/src
     says "create 0.2.0, https://github.com/create-framework/create/releases/tag/v0.2.0" "update's note of a newer create"
     says "New package version available:" "update's note of a newer create"
     says "It is outside the versions pixi.toml allows" "update's note of a newer create"
-    says "To move to it anyway: create upgrade" "update's note of a newer create"
+    says "To upgrade anyway, use: create upgrade" "update's note of a newer create"
     if printf '%s\n' "$out" | grep -q '^  mojo .*, https'; then
         fail "update notes a newer mojo that is not out: $out"
     fi
@@ -316,7 +316,7 @@ rm -f "$work/updated"
     says "  mojo 1.3.0, https://docs.modular.com/mojo/changelog/" "update's note of a newer mojo and create"
     says "They are outside the versions pixi.toml allows" "update's note of a newer mojo and create"
     says "code; their release notes" "update's note of a newer mojo and create"
-    says "To move to them anyway: create upgrade" "update's note of a newer mojo and create")
+    says "To upgrade anyway, use: create upgrade" "update's note of a newer mojo and create")
 rm -f "$work/updated"
 (cd demo && export STUB_FAIL=update && run update && fails "update when pixi update fails" \
     && says "stub: update failed" "update when pixi update fails")

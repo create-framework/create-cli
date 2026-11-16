@@ -79,7 +79,7 @@ Usage:
   create watch [args...]   Run main.mojo, and run it again whenever a .mojo file is saved
   create build [options]   Build main.mojo into an optimised program in build/
   create update            Update Mojo and Create within the versions the project allows
-  create upgrade           Move Mojo and Create to their newest releases, beyond those versions
+  create upgrade           Upgrade Mojo and Create to their newest releases, beyond those versions
   create doctor            Check pixi, this machine and the project for problems
   create --version         Print the version
   create --help            Print this help
@@ -150,8 +150,8 @@ Updates the project's packages, like Mojo and Create, from anywhere inside the
 project, to the newest releases its pixi.toml allows, then shows how Mojo and
 Create changed. The allowed versions stay as they are, so an update never
 brings a Create release that could break the project's code. When a newer
-Mojo or Create is out than they allow, it says so; 'create upgrade' moves to
-it.
+Mojo or Create is out than they allow, it says so; 'create upgrade' upgrades
+to it.
 
 Options:
   -v, --verbose   Show pixi's output
@@ -163,9 +163,9 @@ usage_upgrade() {
     cat <<EOF
 Usage: create upgrade [--verbose]
 
-Moves the project's Mojo and Create, from anywhere inside the project, to their
-newest releases, changing the versions its pixi.toml allows to match, then
-shows how they changed with each one's release notes. Such a release can
+Upgrades the project's Mojo and Create, from anywhere inside the project, to
+their newest releases, changing the versions its pixi.toml allows to match,
+then shows how they changed with each one's release notes. Such a release can
 change Create's API, so any of the project's code that uses it may need
 changes; 'create build' checks that the project still builds. Other packages
 in pixi.toml are left as they are.
@@ -487,9 +487,9 @@ cmd_update() {
     newer=$(newer_versions "$root")
     if [ -n "$newer" ]; then
         if [ "$(printf '%s\n' "$newer" | wc -l)" -eq 1 ]; then
-            versions='version' it='it' it_is='It is' its='its'
+            versions='version' it_is='It is' its='its'
         else
-            versions='versions' it='them' it_is='They are' its='their'
+            versions='versions' it_is='They are' its='their'
         fi
         printf '\nNew package %s available:\n' "$versions"
         printf '%s\n' "$newer" | while read -r name version; do
@@ -497,7 +497,7 @@ cmd_update() {
         done
         printf "%s outside the versions pixi.toml allows, and can break the project's\n" "$it_is"
         printf 'code; %s release notes say what changed.\n' "$its"
-        printf 'To move to %s anyway: create upgrade\n' "$it"
+        printf 'To upgrade anyway, use: create upgrade\n'
     fi
 }
 
