@@ -43,7 +43,8 @@ create doctor             # checks pixi, this machine and the project for proble
   `mojo build`, so `create build -o app` writes `./app` instead.
 - `create update` runs `pixi update` from anywhere in the project, then shows how Mojo and
   Create changed. It stays within the versions `pixi.toml` allows, so it never brings a Create
-  release that could break the project's code; `create upgrade` moves to one.
+  release that could break the project's code. When a newer Mojo or Create is out than those
+  versions allow, it says so, with a link to the release notes; `create upgrade` moves to it.
 - `create upgrade` runs `pixi upgrade mojo create` from anywhere in the project: it moves Mojo
   and Create to their newest releases and changes the versions `pixi.toml` allows to match,
   then shows how they changed, each with a link to its release notes. Such a release can
